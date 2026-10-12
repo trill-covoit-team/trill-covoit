@@ -27,7 +27,7 @@ Le projet est en cours de développement.
 ### Prérequis
 
 - JDK 21.
-- Docker démarré avec Docker Compose.
+- PostgreSQL, via Docker avec Docker Compose ou un serveur (installé ou hébergé).
 - Flutter incluant Dart 3.11.4 ou une version 3.x ultérieure, conformément au `pubspec.yaml` du frontend.
 - Un appareil ou un émulateur configuré pour Flutter. Le développement iOS nécessite macOS et Xcode.
 
@@ -48,7 +48,8 @@ Ouvrir `backend/` dans l’IDE Java et `frontend/` dans l’IDE Flutter. Les deu
 cp .env.example .env
 ```
 
-Les valeurs par défaut conviennent au développement local. Le port `5432` doit être disponible.
+- **Avec Docker** : les valeurs par défaut conviennent (`DOCKER_ENABLED=true`). Docker doit être démarré et le port `DB_PORT` disponible.
+- **Avec un autre serveur PostgreSQL** : définir `DOCKER_ENABLED=false` et adapter `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` et `DB_PASSWORD`. Créer la base indiquée par `DB_NAME` avant le premier démarrage et vérifier que l’utilisateur configuré peut y accéder.
 
 3. Lancer le backend (PowerShell) :
 
@@ -61,7 +62,7 @@ L’API démarre par défaut sur `http://localhost:8080`. Il est également poss
 
 Maven est fourni par le Wrapper : aucune installation séparée de Maven n’est nécessaire.
 
-Spring Boot démarre PostgreSQL automatiquement via Docker Compose. L’API est accessible sur `http://localhost:8080`.
+Avec `DOCKER_ENABLED=true`, Spring Boot démarre PostgreSQL automatiquement via Docker Compose.
 
 4. Lancer le frontend depuis la racine du dépôt, dans un second terminal :
 
@@ -73,7 +74,7 @@ flutter run
 
 ### Tests
 
-Depuis `backend/`, avec Docker démarré :
+Depuis `backend/`, avec PostgreSQL disponible selon la configuration choisie :
 
 ```powershell
 .\mvnw.cmd test
