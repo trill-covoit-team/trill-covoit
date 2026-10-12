@@ -11,13 +11,14 @@ Ce dépôt contient l’application Flutter (`frontend/`) et l’API Spring Boot
 - **Recherche et réservations** : recherche de trajets, demande de place et gestion des demandes par le conducteur.
 - **Partage des frais** : estimation des participations et paiements simulés ou en environnement de test, sans argent réel.
 
-Le projet est en cours de développement. Le dépôt contient actuellement les bases du frontend et du backend.
+Le projet est en cours de développement.
 
 ## Stack technique
 
 - **Application mobile** : Dart / Flutter, pour Android et iOS.
 - **API** : Java 21 / Spring Boot 4.1.1.
 - **Base de données** : PostgreSQL.
+- **Migrations de la base** : Flyway.
 - **Conteneurs** : Docker Compose.
 - **Compilation et tests du backend** : Maven Wrapper.
 
@@ -26,10 +27,13 @@ Le projet est en cours de développement. Le dépôt contient actuellement les b
 ### Prérequis
 
 - JDK 21.
+- Docker démarré avec Docker Compose.
 - Flutter incluant Dart 3.11.4 ou une version 3.x ultérieure, conformément au `pubspec.yaml` du frontend.
 - Un appareil ou un émulateur configuré pour Flutter. Le développement iOS nécessite macOS et Xcode.
 
-### Cloner le dépôt
+### Lancer en local
+
+1. Cloner le dépôt :
 
 ```powershell
 git clone https://github.com/trill-covoit-team/trill-covoit.git
@@ -38,27 +42,28 @@ cd trill-covoit
 
 Ouvrir `backend/` dans l’IDE Java et `frontend/` dans l’IDE Flutter. Les deux projets peuvent être ouverts simultanément ; ils partagent la même branche Git dans cette copie du dépôt.
 
-### Lancer le backend
+2. Créer le fichier de configuration :
 
-Depuis la racine du dépôt, ouvrir un terminal et accéder au backend :
+```powershell
+cp .env.example .env
+```
+
+Les valeurs par défaut conviennent au développement local. Le port `5432` doit être disponible.
+
+3. Lancer le backend (PowerShell) :
 
 ```powershell
 cd backend
-```
-
-Sous Windows :
-
-```powershell
 .\mvnw.cmd spring-boot:run
 ```
 
 L’API démarre par défaut sur `http://localhost:8080`. Il est également possible de lancer la classe `CovoitApiApplication` avec le bouton Run / Debug de l’IDE.
 
-Maven est fourni par le Wrapper : aucune installation séparée de Maven n’est nécessaire. Aucun endpoint métier n’est encore disponible.
+Maven est fourni par le Wrapper : aucune installation séparée de Maven n’est nécessaire.
 
-### Lancer le frontend
+Spring Boot démarre PostgreSQL automatiquement via Docker Compose. L’API est accessible sur `http://localhost:8080`.
 
-Depuis la racine du dépôt, dans un second terminal :
+4. Lancer le frontend depuis la racine du dépôt, dans un second terminal :
 
 ```powershell
 cd frontend
@@ -66,7 +71,13 @@ flutter pub get
 flutter run
 ```
 
-L’application affiche actuellement un écran de démarrage « Hello World! ».
+### Tests
+
+Depuis `backend/`, avec Docker démarré :
+
+```powershell
+.\mvnw.cmd test
+```
 
 ## Équipe
 
