@@ -21,11 +21,11 @@ public class User {
         return this.last_name;
     }
     public String getPhoto() {
-        return this.name;
+        return this.photo;
     }
 
     public String getBiography() {
-        return this.name;
+        return this.biography;
     }
 
     public void setName(String name) {
