@@ -15,7 +15,7 @@ public class AppUserController {
     private final AppUserRepository appUserRepository;
 
     @GetMapping
-    public List<AppUser> getAllPlayers() {
+    public List<AppUser> getAllUsers() {
         return appUserRepository.findAll();
     }
 }
