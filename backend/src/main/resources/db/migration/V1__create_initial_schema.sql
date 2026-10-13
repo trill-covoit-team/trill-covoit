@@ -16,7 +16,7 @@ CREATE TABLE vehicle
     brand              VARCHAR(100) NOT NULL,
     model              VARCHAR(100) NOT NULL,
     passenger_capacity INT          NOT NULL CHECK (passenger_capacity > 0),
-    user_id            BIGINT       NOT NULL UNIQUE,
+    user_id            BIGINT       NOT NULL,
     FOREIGN KEY (user_id) REFERENCES app_user (user_id)
 );
 
