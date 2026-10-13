@@ -1,4 +1,4 @@
-package accessingData;
+package fr.trill.covoit.accessingData;
 
 public class User {
     private String name;
