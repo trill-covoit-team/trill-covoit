@@ -13,11 +13,9 @@ class UserModel {
     this.lastName,
   });
 
-  /// Alias pratique pour accéder à l'identifiant
   int get id => userId;
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
-    // Accepte userId en priorité, avec repli sur id
     final rawId = json['userId'] ?? json['id'] ?? 0;
     return UserModel(
       userId: rawId is int ? rawId : int.tryParse(rawId.toString()) ?? 0,
