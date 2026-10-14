@@ -1,4 +1,4 @@
-package fr.trill.covoit.auth.dto;
+package fr.trill.covoit.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,8 +12,11 @@ import lombok.NoArgsConstructor;
 public class AuthResponse {
 
     private Long id;
+    private Long userId;
     private String email;
     private String role;
     private boolean emailVerified;
+    private String accessToken;
+    private String tokenType;
     private String message;
 }

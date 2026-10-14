@@ -1,14 +1,15 @@
-package fr.trill.covoit.auth;
+package fr.trill.covoit.repository;
 
+import fr.trill.covoit.model.AppUser;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
-    Optional<User> findByEmail(String email);
+    Optional<AppUser> findByEmail(String email);
 
     boolean existsByEmail(String email);
 }

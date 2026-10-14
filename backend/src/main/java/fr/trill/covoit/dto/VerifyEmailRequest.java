@@ -1,4 +1,4 @@
-package fr.trill.covoit.auth.dto;
+package fr.trill.covoit.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -14,11 +14,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class VerifyEmailRequest {
 
-    @NotBlank(message = "L'adresse email est requise")
-    @Email(message = "L'adresse email n'est pas valide")
+    @NotBlank(message = "L'adresse email est obligatoire")
+    @Email(message = "Format d'adresse email invalide")
     private String email;
 
-    @NotBlank(message = "Le code de validation est requis")
-    @Pattern(regexp = "^[0-9]{6}$", message = "Le code de validation doit comporter 6 chiffres")
+    @NotBlank(message = "Le code de validation est obligatoire")
+    @Pattern(regexp = "^\\d{6}$", message = "Le code de validation doit comporter exactement 6 chiffres")
     private String code;
 }

@@ -1,4 +1,4 @@
-package fr.trill.covoit.auth;
+package fr.trill.covoit.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

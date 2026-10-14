@@ -1,4 +1,4 @@
-package fr.trill.covoit.auth.dto;
+package fr.trill.covoit.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

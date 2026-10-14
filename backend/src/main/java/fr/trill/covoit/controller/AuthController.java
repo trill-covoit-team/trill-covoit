@@ -1,10 +1,11 @@
-package fr.trill.covoit.auth;
+package fr.trill.covoit.controller;
 
-import fr.trill.covoit.auth.dto.AuthResponse;
-import fr.trill.covoit.auth.dto.LoginRequest;
-import fr.trill.covoit.auth.dto.MessageResponse;
-import fr.trill.covoit.auth.dto.RegisterRequest;
-import fr.trill.covoit.auth.dto.VerifyEmailRequest;
+import fr.trill.covoit.dto.AuthResponse;
+import fr.trill.covoit.dto.LoginRequest;
+import fr.trill.covoit.dto.MessageResponse;
+import fr.trill.covoit.dto.RegisterRequest;
+import fr.trill.covoit.dto.VerifyEmailRequest;
+import fr.trill.covoit.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -12,7 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping({"/auth", "/api/auth"})
 @RequiredArgsConstructor
 public class AuthController {
 

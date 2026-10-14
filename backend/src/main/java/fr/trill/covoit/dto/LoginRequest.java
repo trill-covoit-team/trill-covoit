@@ -1,4 +1,4 @@
-package fr.trill.covoit.auth.dto;
+package fr.trill.covoit.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -13,10 +13,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class LoginRequest {
 
-    @NotBlank(message = "L'adresse email est requise")
-    @Email(message = "L'adresse email n'est pas valide")
+    @NotBlank(message = "L'adresse email est obligatoire")
+    @Email(message = "Format d'adresse email invalide")
     private String email;
 
-    @NotBlank(message = "Le mot de passe est requis")
+    @NotBlank(message = "Le mot de passe est obligatoire")
     private String password;
 }
