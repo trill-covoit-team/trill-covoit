@@ -16,6 +16,7 @@ void main() {
 
       final user = UserModel.fromJson(json);
 
+      expect(user.userId, 42);
       expect(user.id, 42);
       expect(user.email, 'etudiant@univ.fr');
       expect(user.emailVerified, isTrue);
@@ -32,15 +33,16 @@ void main() {
 
       final user = UserModel.fromJson(json);
 
+      expect(user.userId, 7);
       expect(user.id, 7);
       expect(user.email, 'test@univ.fr');
       expect(user.emailVerified, isFalse);
       expect(user.firstName, isNull);
     });
 
-    test('Sérialise vers un Map JSON valide', () {
+    test('Sérialise vers un Map JSON valide avec userId', () {
       const user = UserModel(
-        id: 1,
+        userId: 1,
         email: 'test@univ.fr',
         emailVerified: true,
         firstName: 'Alice',
@@ -48,7 +50,7 @@ void main() {
 
       final map = user.toJson();
 
-      expect(map['id'], 1);
+      expect(map['userId'], 1);
       expect(map['email'], 'test@univ.fr');
       expect(map['emailVerified'], isTrue);
       expect(map['firstName'], 'Alice');
@@ -72,20 +74,21 @@ void main() {
 
       expect(session.accessToken, 'jwt-token-123');
       expect(session.tokenType, 'Bearer');
+      expect(session.user.userId, 5);
       expect(session.user.id, 5);
       expect(session.user.email, 'session@univ.fr');
     });
 
     test('Désérialise depuis une réponse plate', () {
       final json = {
-        'id': 10,
+        'userId': 10,
         'email': 'flat@univ.fr',
         'emailVerified': true,
       };
 
       final session = AuthSession.fromJson(json);
 
-      expect(session.user.id, 10);
+      expect(session.user.userId, 10);
       expect(session.user.email, 'flat@univ.fr');
       expect(session.accessToken, isNull);
     });
