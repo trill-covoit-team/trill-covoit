@@ -17,7 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
-import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -37,7 +38,7 @@ public class AuthService {
         }
 
         String code = generateVerificationCode();
-        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(CODE_EXPIRATION_MINUTES);
+        Instant expiresAt = Instant.now().plus(Duration.ofMinutes(CODE_EXPIRATION_MINUTES));
 
         AppUser user = AppUser.builder()
                 .email(request.getEmail())
@@ -46,7 +47,6 @@ public class AuthService {
                 .emailVerified(false)
                 .verificationCode(code)
                 .verificationCodeExpiresAt(expiresAt)
-                .role("USER")
                 .build();
 
         userRepository.save(user);
@@ -63,7 +63,7 @@ public class AuthService {
         if (user.getVerificationCode() == null
                 || !user.getVerificationCode().equals(request.getCode())
                 || user.getVerificationCodeExpiresAt() == null
-                || user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())) {
+                || user.getVerificationCodeExpiresAt().isBefore(Instant.now())) {
             throw new InvalidVerificationCodeException("Code de vérification invalide ou expiré");
         }
 
@@ -89,12 +89,10 @@ public class AuthService {
         }
 
         return AuthResponse.builder()
-                .id(user.getId())
-                .userId(user.getId())
+                .userId(user.getUserId())
                 .email(user.getEmail())
-                .role(user.getRole())
                 .emailVerified(user.isEmailVerified())
-                .accessToken("mock-session-" + user.getId())
+                .accessToken("mock-session-" + user.getUserId())
                 .tokenType("Bearer")
                 .message("Connexion réussie")
                 .build();
