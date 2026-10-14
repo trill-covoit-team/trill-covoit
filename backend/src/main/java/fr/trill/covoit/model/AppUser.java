@@ -37,4 +37,8 @@ public class AppUser {
 
     @Column(name = "bio")
     private String bio;
+
+    public boolean checkPhoto() {
+        return false;
+    }
 }
