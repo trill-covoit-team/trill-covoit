@@ -8,7 +8,7 @@ void main() {
   test('La configuration API respecte la valeur de compilation', () {
     const override = String.fromEnvironment('API_BASE_URL');
     final expected = override.isEmpty
-        ? 'http://10.0.2.2:8080/api'
+        ? 'http://10.0.2.2:8080'
         : override;
 
     expect(ApiConstants.baseUrl, expected);
