@@ -1,5 +1,6 @@
 package fr.trill.covoit.dto;
 
+import fr.trill.covoit.dto.validation.MaxUtf8Bytes;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -22,6 +23,7 @@ public class RegisterRequest {
 
     @NotBlank(message = "Le mot de passe est obligatoire")
     @Size(min = 8, message = "Le mot de passe doit contenir au moins 8 caractères")
+    @MaxUtf8Bytes(max = 72, message = "Le mot de passe ne peut pas dépasser 72 octets")
     private String password;
 
     @AssertTrue(message = "Vous devez accepter les conditions d'utilisation")

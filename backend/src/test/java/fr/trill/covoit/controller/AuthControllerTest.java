@@ -1,6 +1,6 @@
 package fr.trill.covoit.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import fr.trill.covoit.dto.AuthResponse;
 import fr.trill.covoit.dto.LoginRequest;
 import fr.trill.covoit.dto.MessageResponse;
@@ -87,7 +87,8 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRegisterRequest)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.email").value("Format d'adresse email invalide"));
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fieldErrors.email").value("Format d'adresse email invalide"));
     }
 
     @Test
@@ -98,7 +99,20 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRegisterRequest)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.password").value("Le mot de passe doit contenir au moins 8 caractères"));
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fieldErrors.password").value("Le mot de passe doit contenir au moins 8 caractères"));
+    }
+
+    @Test
+    void register_PasswordExceeds72Bytes_Returns400() throws Exception {
+        validRegisterRequest.setPassword("A".repeat(73));
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRegisterRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fieldErrors.password").value("Le mot de passe ne peut pas dépasser 72 octets"));
     }
 
     @Test
@@ -110,6 +124,7 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRegisterRequest)))
                 .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("EMAIL_ALREADY_USED"))
                 .andExpect(jsonPath("$.message").value("Cet email est déjà utilisé"));
     }
 
@@ -134,16 +149,15 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validVerifyEmailRequest)))
                 .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_VERIFICATION_CODE"))
                 .andExpect(jsonPath("$.message").value("Code de vérification invalide ou expiré"));
     }
 
     @Test
     void login_Success_Returns200() throws Exception {
         AuthResponse response = AuthResponse.builder()
-                .id(1L)
                 .userId(1L)
                 .email("test@univ-tlse3.fr")
-                .role("USER")
                 .emailVerified(true)
                 .message("Connexion réussie")
                 .build();
@@ -154,6 +168,7 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validLoginRequest)))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(1L))
                 .andExpect(jsonPath("$.email").value("test@univ-tlse3.fr"))
                 .andExpect(jsonPath("$.emailVerified").value(true));
     }
@@ -167,6 +182,7 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validLoginRequest)))
                 .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"))
                 .andExpect(jsonPath("$.message").value("Identifiants invalides"));
     }
 
@@ -179,6 +195,7 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validLoginRequest)))
                 .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("EMAIL_NOT_VERIFIED"))
                 .andExpect(jsonPath("$.message").value("Veuillez valider votre adresse email avant de vous connecter"));
     }
 }

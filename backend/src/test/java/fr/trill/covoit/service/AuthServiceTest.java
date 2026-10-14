@@ -20,7 +20,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -56,14 +57,13 @@ class AuthServiceTest {
                 .build();
 
         sampleUser = AppUser.builder()
-                .id(1L)
+                .userId(1L)
                 .email("etudiant@univ-tlse3.fr")
                 .passwordHash("hashed_password")
                 .emailVerified(false)
                 .termsAccepted(true)
                 .verificationCode("123456")
-                .verificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15))
-                .role("USER")
+                .verificationCodeExpiresAt(Instant.now().plus(Duration.ofMinutes(15)))
                 .build();
     }
 
@@ -85,8 +85,9 @@ class AuthServiceTest {
         assertThat(savedUser.getEmail()).isEqualTo("etudiant@univ-tlse3.fr");
         assertThat(savedUser.getPasswordHash()).isEqualTo("hashed_password");
         assertThat(savedUser.isEmailVerified()).isFalse();
+        assertThat(savedUser.isTermsAccepted()).isTrue();
         assertThat(savedUser.getVerificationCode()).hasSize(6);
-        assertThat(savedUser.getVerificationCodeExpiresAt()).isAfter(LocalDateTime.now());
+        assertThat(savedUser.getVerificationCodeExpiresAt()).isAfter(Instant.now());
 
         verify(emailService).sendVerificationCode(eq("etudiant@univ-tlse3.fr"), eq(savedUser.getVerificationCode()));
     }
@@ -142,7 +143,7 @@ class AuthServiceTest {
 
     @Test
     void verifyEmail_ExpiredCode_ThrowsException() {
-        sampleUser.setVerificationCodeExpiresAt(LocalDateTime.now().minusMinutes(1));
+        sampleUser.setVerificationCodeExpiresAt(Instant.now().minus(Duration.ofMinutes(1)));
         when(userRepository.findByEmail("etudiant@univ-tlse3.fr")).thenReturn(Optional.of(sampleUser));
 
         VerifyEmailRequest request = VerifyEmailRequest.builder()
@@ -169,6 +170,7 @@ class AuthServiceTest {
         AuthResponse response = authService.login(request);
 
         assertThat(response).isNotNull();
+        assertThat(response.getUserId()).isEqualTo(1L);
         assertThat(response.getEmail()).isEqualTo("etudiant@univ-tlse3.fr");
         assertThat(response.isEmailVerified()).isTrue();
         assertThat(response.getMessage()).isEqualTo("Connexion réussie");

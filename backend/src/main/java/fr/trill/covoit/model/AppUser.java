@@ -3,7 +3,7 @@ package fr.trill.covoit.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "app_user")
@@ -17,7 +17,7 @@ public class AppUser {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
-    private Long id;
+    private Long userId;
 
     @Column(name = "email", nullable = false, unique = true)
     private String email;
@@ -42,37 +42,28 @@ public class AppUser {
     private String bio;
 
     @Column(name = "terms_accepted", nullable = false)
-    @Builder.Default
-    private boolean termsAccepted = true;
+    private boolean termsAccepted;
 
     @Column(name = "verification_code", length = 6)
     private String verificationCode;
 
     @Column(name = "verification_code_expires_at")
-    private LocalDateTime verificationCodeExpiresAt;
-
-    @Column(name = "role", nullable = false)
-    @Builder.Default
-    private String role = "USER";
+    private Instant verificationCodeExpiresAt;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        createdAt = Instant.now();
+        updatedAt = Instant.now();
     }
 
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
-
-    public Long getUserId() {
-        return id;
+        updatedAt = Instant.now();
     }
 }
