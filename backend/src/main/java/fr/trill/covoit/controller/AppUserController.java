@@ -67,18 +67,4 @@ public class AppUserController {
         appUserRepository.save(n);
         return "Successfully deleted photo";
     }
-
-    @GetMapping("/{id}/vehicles")
-    public Optional<AppUser> getVehiclesForOneUser(@PathVariable int id) {
-        return appUserRepository.findById(id);
-    }
-
-    @PostMapping("/{id}/vehicles")
-    public @ResponseBody String postVehiclesForOneUser(@PathVariable int id,
-                                                       @RequestParam int vehicleId,
-                                                       @RequestParam String brand,
-                                                       @RequestParam String model,
-                                                       @RequestParam int passengerCapacity) {
-        return "Saved";
-    }
 }
