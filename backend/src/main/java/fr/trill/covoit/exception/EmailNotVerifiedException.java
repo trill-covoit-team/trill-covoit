@@ -1,8 +1,7 @@
-package fr.trill.covoit.auth.exception;
+package fr.trill.covoit.exception;
 
 public class EmailNotVerifiedException extends RuntimeException {
-
     public EmailNotVerifiedException(String message) {
-        super(message); // 403 forbidden
+        super(message);
     }
 }

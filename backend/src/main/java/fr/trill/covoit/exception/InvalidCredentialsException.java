@@ -1,8 +1,7 @@
-package fr.trill.covoit.auth.exception;
+package fr.trill.covoit.exception;
 
 public class InvalidCredentialsException extends RuntimeException {
-
     public InvalidCredentialsException(String message) {
-        super(message); // 401 Unauthorized
+        super(message);
     }
 }

@@ -1,4 +1,4 @@
-package fr.trill.covoit.auth;
+package fr.trill.covoit.model;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -6,19 +6,20 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(name = "app_user")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User {
+public class AppUser {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "user_id")
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "email", nullable = false, unique = true)
     private String email;
 
     @Column(name = "password_hash", nullable = false)
@@ -27,6 +28,18 @@ public class User {
     @Column(name = "email_verified", nullable = false)
     @Builder.Default
     private boolean emailVerified = false;
+
+    @Column(name = "first_name")
+    private String firstName;
+
+    @Column(name = "last_name")
+    private String lastName;
+
+    @Column(name = "photo_url")
+    private String photoUrl;
+
+    @Column(name = "bio")
+    private String bio;
 
     @Column(name = "terms_accepted", nullable = false)
     @Builder.Default
@@ -38,7 +51,7 @@ public class User {
     @Column(name = "verification_code_expires_at")
     private LocalDateTime verificationCodeExpiresAt;
 
-    @Column(nullable = false, length = 50)
+    @Column(name = "role", nullable = false)
     @Builder.Default
     private String role = "USER";
 
@@ -50,12 +63,16 @@ public class User {
 
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate
     protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    public Long getUserId() {
+        return id;
     }
 }
