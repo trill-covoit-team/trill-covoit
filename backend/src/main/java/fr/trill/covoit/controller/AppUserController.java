@@ -9,15 +9,10 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/users")
 @RequiredArgsConstructor
 public class AppUserController {
     private final AppUserRepository appUserRepository;
-
-    @GetMapping
-    public List<AppUser> getAllUsers() {
-        return appUserRepository.findAll();
-    }
 
     @GetMapping("/{id}")
     public Optional<AppUser> getOneUser(@PathVariable int id) {
@@ -71,5 +66,19 @@ public class AppUserController {
         n.setPhotoUrl("");
         appUserRepository.save(n);
         return "Successfully deleted photo";
+    }
+
+    @GetMapping("/{id}/vehicles")
+    public Optional<AppUser> getVehiclesForOneUser(@PathVariable int id) {
+        return appUserRepository.findById(id);
+    }
+
+    @PostMapping("/{id}/vehicles")
+    public @ResponseBody String postVehiclesForOneUser(@PathVariable int id,
+                                                       @RequestParam int vehicleId,
+                                                       @RequestParam String brand,
+                                                       @RequestParam String model,
+                                                       @RequestParam int passengerCapacity) {
+        return "Saved";
     }
 }
