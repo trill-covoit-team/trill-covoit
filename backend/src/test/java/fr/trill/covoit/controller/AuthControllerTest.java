@@ -88,7 +88,7 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(validRegisterRequest)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
-                .andExpect(jsonPath("$.fieldErrors.email").value("Format d'adresse email invalide"));
+                .andExpect(jsonPath("$.fieldErrors.email").value("L'adresse email est invalide."));
     }
 
     @Test
@@ -100,7 +100,7 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(validRegisterRequest)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
-                .andExpect(jsonPath("$.fieldErrors.password").value("Le mot de passe doit contenir au moins 8 caractères"));
+                .andExpect(jsonPath("$.fieldErrors.password").value("Le mot de passe doit contenir au moins 8 caractères."));
     }
 
     @Test
@@ -112,20 +112,20 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(validRegisterRequest)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
-                .andExpect(jsonPath("$.fieldErrors.password").value("Le mot de passe ne peut pas dépasser 72 octets"));
+                .andExpect(jsonPath("$.fieldErrors.password").value("Le mot de passe est trop long."));
     }
 
     @Test
     void register_EmailAlreadyUsed_Returns409() throws Exception {
         when(authService.register(any(RegisterRequest.class)))
-                .thenThrow(new EmailAlreadyUsedException("Cet email est déjà utilisé"));
+                .thenThrow(new EmailAlreadyUsedException());
 
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRegisterRequest)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("EMAIL_ALREADY_USED"))
-                .andExpect(jsonPath("$.message").value("Cet email est déjà utilisé"));
+                .andExpect(jsonPath("$.message").value("Cette adresse email est déjà utilisée."));
     }
 
     @Test
@@ -143,14 +143,14 @@ class AuthControllerTest {
     @Test
     void verifyEmail_InvalidCode_Returns400() throws Exception {
         when(authService.verifyEmail(any(VerifyEmailRequest.class)))
-                .thenThrow(new InvalidVerificationCodeException("Code de vérification invalide ou expiré"));
+                .thenThrow(new InvalidVerificationCodeException());
 
         mockMvc.perform(post("/auth/verify-email")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validVerifyEmailRequest)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_VERIFICATION_CODE"))
-                .andExpect(jsonPath("$.message").value("Code de vérification invalide ou expiré"));
+                .andExpect(jsonPath("$.message").value("Le code de validation est invalide ou expiré."));
     }
 
     @Test
@@ -159,7 +159,7 @@ class AuthControllerTest {
                 .userId(1L)
                 .email("test@univ-tlse3.fr")
                 .emailVerified(true)
-                .message("Connexion réussie")
+                .message("Connexion réussie.")
                 .build();
 
         when(authService.login(any(LoginRequest.class))).thenReturn(response);
@@ -176,26 +176,26 @@ class AuthControllerTest {
     @Test
     void login_InvalidCredentials_Returns401() throws Exception {
         when(authService.login(any(LoginRequest.class)))
-                .thenThrow(new InvalidCredentialsException("Identifiants invalides"));
+                .thenThrow(new InvalidCredentialsException());
 
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validLoginRequest)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"))
-                .andExpect(jsonPath("$.message").value("Identifiants invalides"));
+                .andExpect(jsonPath("$.message").value("L'adresse email ou le mot de passe est incorrect."));
     }
 
     @Test
     void login_EmailNotVerified_Returns403() throws Exception {
         when(authService.login(any(LoginRequest.class)))
-                .thenThrow(new EmailNotVerifiedException("Veuillez valider votre adresse email avant de vous connecter"));
+                .thenThrow(new EmailNotVerifiedException());
 
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validLoginRequest)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("EMAIL_NOT_VERIFIED"))
-                .andExpect(jsonPath("$.message").value("Veuillez valider votre adresse email avant de vous connecter"));
+                .andExpect(jsonPath("$.message").value("Veuillez valider votre adresse email avant de vous connecter."));
     }
 }

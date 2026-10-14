@@ -14,11 +14,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class LoginRequest {
 
-    @NotBlank(message = "L'adresse email est obligatoire")
-    @Email(message = "Format d'adresse email invalide")
+    @NotBlank(message = "L'adresse email est obligatoire.")
+    @Email(message = "L'adresse email est invalide.")
     private String email;
 
-    @NotBlank(message = "Le mot de passe est obligatoire")
-    @MaxUtf8Bytes(max = 72, message = "Le mot de passe ne peut pas dépasser 72 octets")
+    @NotBlank(message = "Le mot de passe est obligatoire.")
+    @MaxUtf8Bytes
     private String password;
 }

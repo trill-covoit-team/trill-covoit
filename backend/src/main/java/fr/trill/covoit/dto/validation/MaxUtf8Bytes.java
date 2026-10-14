@@ -11,7 +11,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface MaxUtf8Bytes {
 
-    String message() default "Le mot de passe ne peut pas dépasser 72 octets";
+    String message() default "Le mot de passe est trop long.";
 
     Class<?>[] groups() default {};
 

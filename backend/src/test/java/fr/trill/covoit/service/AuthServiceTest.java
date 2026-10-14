@@ -69,7 +69,7 @@ class AuthServiceTest {
 
     @Test
     void register_Success() {
-        when(userRepository.existsByEmail(anyString())).thenReturn(false);
+        when(userRepository.existsByEmailIgnoreCase(anyString())).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("hashed_password");
         when(userRepository.save(any(AppUser.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -94,11 +94,11 @@ class AuthServiceTest {
 
     @Test
     void register_EmailAlreadyUsed_ThrowsException() {
-        when(userRepository.existsByEmail("etudiant@univ-tlse3.fr")).thenReturn(true);
+        when(userRepository.existsByEmailIgnoreCase("etudiant@univ-tlse3.fr")).thenReturn(true);
 
         assertThatThrownBy(() -> authService.register(validRegisterRequest))
                 .isInstanceOf(EmailAlreadyUsedException.class)
-                .hasMessage("Cet email est déjà utilisé");
+                .hasMessage("Cette adresse email est déjà utilisée.");
 
         verify(userRepository, never()).save(any());
         verify(emailService, never()).sendVerificationCode(any(), any());
@@ -106,7 +106,7 @@ class AuthServiceTest {
 
     @Test
     void verifyEmail_Success() {
-        when(userRepository.findByEmail("etudiant@univ-tlse3.fr")).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByEmailIgnoreCase("etudiant@univ-tlse3.fr")).thenReturn(Optional.of(sampleUser));
         when(userRepository.save(any(AppUser.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         VerifyEmailRequest request = VerifyEmailRequest.builder()
@@ -117,7 +117,7 @@ class AuthServiceTest {
         MessageResponse response = authService.verifyEmail(request);
 
         assertThat(response).isNotNull();
-        assertThat(response.getMessage()).contains("validée avec succès");
+        assertThat(response.getMessage()).contains("email a été validée");
         assertThat(sampleUser.isEmailVerified()).isTrue();
         assertThat(sampleUser.getVerificationCode()).isNull();
         assertThat(sampleUser.getVerificationCodeExpiresAt()).isNull();
@@ -127,7 +127,7 @@ class AuthServiceTest {
 
     @Test
     void verifyEmail_InvalidCode_ThrowsException() {
-        when(userRepository.findByEmail("etudiant@univ-tlse3.fr")).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByEmailIgnoreCase("etudiant@univ-tlse3.fr")).thenReturn(Optional.of(sampleUser));
 
         VerifyEmailRequest request = VerifyEmailRequest.builder()
                 .email("etudiant@univ-tlse3.fr")
@@ -136,7 +136,7 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.verifyEmail(request))
                 .isInstanceOf(InvalidVerificationCodeException.class)
-                .hasMessage("Code de vérification invalide ou expiré");
+                .hasMessage("Le code de validation est invalide ou expiré.");
 
         verify(userRepository, never()).save(any());
     }
@@ -144,7 +144,7 @@ class AuthServiceTest {
     @Test
     void verifyEmail_ExpiredCode_ThrowsException() {
         sampleUser.setVerificationCodeExpiresAt(Instant.now().minus(Duration.ofMinutes(1)));
-        when(userRepository.findByEmail("etudiant@univ-tlse3.fr")).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByEmailIgnoreCase("etudiant@univ-tlse3.fr")).thenReturn(Optional.of(sampleUser));
 
         VerifyEmailRequest request = VerifyEmailRequest.builder()
                 .email("etudiant@univ-tlse3.fr")
@@ -153,13 +153,13 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.verifyEmail(request))
                 .isInstanceOf(InvalidVerificationCodeException.class)
-                .hasMessage("Code de vérification invalide ou expiré");
+                .hasMessage("Le code de validation est invalide ou expiré.");
     }
 
     @Test
     void login_Success() {
         sampleUser.setEmailVerified(true);
-        when(userRepository.findByEmail("etudiant@univ-tlse3.fr")).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByEmailIgnoreCase("etudiant@univ-tlse3.fr")).thenReturn(Optional.of(sampleUser));
         when(passwordEncoder.matches("MotDePasse123!", "hashed_password")).thenReturn(true);
 
         LoginRequest request = LoginRequest.builder()
@@ -173,13 +173,13 @@ class AuthServiceTest {
         assertThat(response.getUserId()).isEqualTo(1L);
         assertThat(response.getEmail()).isEqualTo("etudiant@univ-tlse3.fr");
         assertThat(response.isEmailVerified()).isTrue();
-        assertThat(response.getMessage()).isEqualTo("Connexion réussie");
+        assertThat(response.getMessage()).isEqualTo("Connexion réussie.");
     }
 
     @Test
     void login_EmailNotVerified_ThrowsException() {
         sampleUser.setEmailVerified(false);
-        when(userRepository.findByEmail("etudiant@univ-tlse3.fr")).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByEmailIgnoreCase("etudiant@univ-tlse3.fr")).thenReturn(Optional.of(sampleUser));
         when(passwordEncoder.matches("MotDePasse123!", "hashed_password")).thenReturn(true);
 
         LoginRequest request = LoginRequest.builder()
@@ -189,12 +189,12 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.login(request))
                 .isInstanceOf(EmailNotVerifiedException.class)
-                .hasMessage("Veuillez valider votre adresse email avant de vous connecter");
+                .hasMessage("Veuillez valider votre adresse email avant de vous connecter.");
     }
 
     @Test
     void login_WrongPassword_ThrowsException() {
-        when(userRepository.findByEmail("etudiant@univ-tlse3.fr")).thenReturn(Optional.of(sampleUser));
+        when(userRepository.findByEmailIgnoreCase("etudiant@univ-tlse3.fr")).thenReturn(Optional.of(sampleUser));
         when(passwordEncoder.matches("MauvaisMotDePasse", "hashed_password")).thenReturn(false);
 
         LoginRequest request = LoginRequest.builder()
@@ -204,6 +204,6 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.login(request))
                 .isInstanceOf(InvalidCredentialsException.class)
-                .hasMessage("Identifiants invalides");
+                .hasMessage("L'adresse email ou le mot de passe est incorrect.");
     }
 }
