@@ -37,9 +37,4 @@ public class AppUser {
 
     @Column(name = "bio")
     private String bio;
-
-    //pas plus de 5Mo
-    public boolean checkPhoto() {
-        return false;
-    }
 }
