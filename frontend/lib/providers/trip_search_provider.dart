@@ -29,6 +29,8 @@ class TripSearchProvider extends ChangeNotifier {
   List<Trip> _trips = <Trip>[];
   bool _isLoading = false;
   String? _errorMessage;
+  
+  /// Numéro de requête pour invalider les réponses obsolètes.
   int _searchRequestId = 0;
 
   // --- Sélection et itinéraire ---
@@ -36,11 +38,11 @@ class TripSearchProvider extends ChangeNotifier {
   List<LatLng> _routePoints = <LatLng>[];
   bool _isRouteLoading = false;
   String? _routeErrorMessage;
-
-  /// Permet d'ignorer les réponses OSRM arrivant après un nouveau clic.
+  
+  /// Numéro de requête pour ignorer les réponses OSRM arrivant après un nouveau clic.
   int _routeRequestId = 0;
-
-  /// Un trajet déjà calculé ne relance jamais un appel réseau.
+  
+  /// Cache des itinéraires déjà calculés (par tripId).
   final Map<int, List<LatLng>> _routeCache = <int, List<LatLng>>{};
 
   // --- Getters ---
@@ -94,6 +96,7 @@ class TripSearchProvider extends ChangeNotifier {
         departureDatetime: _departureDatetime,
       );
 
+      // Réponse obsolète : l'utilisateur a déjà lancé une nouvelle recherche.
       if (requestId != _searchRequestId) return;
       _trips = results;
     } catch (error) {
@@ -123,6 +126,7 @@ class TripSearchProvider extends ChangeNotifier {
     _selectedTrip = trip;
     _routeErrorMessage = null;
 
+    // Cache : un trajet déjà calculé s'affiche instantanément.
     final List<LatLng>? cached = _routeCache[trip.tripId];
     if (cached != null) {
       _routePoints = cached;

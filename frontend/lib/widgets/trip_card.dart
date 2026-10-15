@@ -20,7 +20,7 @@ class TripCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final timeFormat = DateFormat('EEEE d MMMM, HH:mm', 'fr_FR');
     
-    // Sécurisation de l'extraction de l'initiale
+    // Sécurisation : évite RangeError si le prénom est vide.
     final firstName = trip.driver.firstName.trim();
     final initial = firstName.isNotEmpty ? firstName.substring(0, 1).toUpperCase() : '?';
 

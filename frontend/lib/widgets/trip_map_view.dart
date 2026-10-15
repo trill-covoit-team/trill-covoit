@@ -8,6 +8,9 @@ import '../models/trip.dart';
 ///
 /// Les points sont fournis par le provider, qui gère le chargement, le cache
 /// et l'invalidation des réponses obsolètes. Ce widget ne fait aucun appel réseau.
+ ///
+/// Le MapController est attaché après le premier build via addPostFrameCallback
+/// pour éviter les erreurs de lifecycle.
 class TripMapView extends StatefulWidget {
   const TripMapView({
     super.key,
@@ -23,7 +26,6 @@ class TripMapView extends StatefulWidget {
 }
 
 class _TripMapViewState extends State<TripMapView> {
-  /// Centre de secours tant qu'aucun trajet n'est sélectionné.
   static const LatLng _defaultCenter = LatLng(43.6045, 1.4442);
   static const double _tripZoom = 12;
 
@@ -82,8 +84,6 @@ class _TripMapViewState extends State<TripMapView> {
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'com.trill.covoit',
         ),
-
-        // L'itinéraire est dessiné sous les marqueurs.
         if (widget.routePoints.isNotEmpty)
           PolylineLayer(
             polylines: [
@@ -96,8 +96,6 @@ class _TripMapViewState extends State<TripMapView> {
               ),
             ],
           ),
-
-        // Un seul trajet à la fois : celui que l'utilisateur a choisi.
         if (trip != null)
           MarkerLayer(
             markers: [

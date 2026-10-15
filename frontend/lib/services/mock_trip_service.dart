@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:latlong2/latlong.dart';
 
@@ -8,7 +7,7 @@ import 'trip_service.dart';
 
 /// Implémentation simulée qui charge les réponses depuis des fichiers JSON
 /// dans `assets/mocks/`. Les données respectent strictement le contrat
-/// Front/Back et sont réutilisées telles quelles par les tests.
+/// Front/Back et sont réutilisables telles quelles par les tests.
 class MockTripService implements TripService {
   static const String _searchResponsePath = 'assets/mocks/trips_search.json';
   static const Duration _simulatedDelay = Duration(milliseconds: 400);

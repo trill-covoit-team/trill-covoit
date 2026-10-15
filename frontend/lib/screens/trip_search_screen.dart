@@ -7,20 +7,21 @@ import '../widgets/trip_bottom_sheet.dart';
 import '../widgets/trip_map_view.dart';
 
 /// Écran principal : carte plein écran, recherche en haut, résultats en bas.
+///
+/// Architecture : la carte est seule dans un Stack de fond (Positioned.fill),
+/// la surcouche UI est une Column (formulaire + Expanded pour le bottom sheet).
+/// Ainsi la carte prend toujours 100% de l'écran, avec ou sans résultats.
 class TripSearchScreen extends StatelessWidget {
   const TripSearchScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Pas d'AppBar : la carte s'étend jusqu'aux bords de l'écran.
       body: Consumer<TripSearchProvider>(
         builder: (context, provider, _) {
           return Stack(
             children: [
-              // ---- Fond : la carte, sur toute la surface ----
-              // Enfant positionné dans un Stack dont l'unique rôle est de
-              // servir de fond : il prend toujours toute la place disponible.
+              // Fond : la carte, sur toute la surface.
               Positioned.fill(
                 child: TripMapView(
                   selectedTrip: provider.selectedTrip,
@@ -28,7 +29,7 @@ class TripSearchScreen extends StatelessWidget {
                 ),
               ),
 
-              // ---- Surcouche : formulaire + zone de résultats ----
+              // Surcouche : formulaire + zone de résultats.
               Positioned.fill(
                 child: SafeArea(
                   child: Column(
@@ -37,10 +38,9 @@ class TripSearchScreen extends StatelessWidget {
                         padding: const EdgeInsets.all(12),
                         child: _SearchForm(provider: provider),
                       ),
-
                       // Le bottom sheet vit DANS cette zone : ses pourcentages
                       // sont calculés ici, il ne peut donc jamais recouvrir
-                      // le formulaire. Les indicateurs y restent aussi visibles.
+                      // le formulaire.
                       Expanded(
                         child: Stack(
                           children: [

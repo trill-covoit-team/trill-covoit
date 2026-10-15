@@ -1,14 +1,12 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
-
 import '../models/address_suggestion.dart';
 import '../services/geocoding_service.dart';
 
 /// Champ de saisie d'adresse avec suggestions via Nominatim.
 ///
-/// Le debounce évite de déclencher une requête à chaque frappe et respecte
-/// la politique d'usage de l'instance publique (1 requête par seconde max).
+/// Le debounce de 400ms évite de déclencher une requête à chaque frappe et
+/// respecte la politique d'usage de l'instance publique (1 requête par seconde max).
 class AddressSearchField extends StatefulWidget {
   final String label;
   final IconData icon;
@@ -20,7 +18,7 @@ class AddressSearchField extends StatefulWidget {
     required this.label,
     required this.icon,
     required this.onSelected,
-    this.geocodingService = const GeocodingService(), // Valeur par défaut pour la simplicité d'usage
+    this.geocodingService = const GeocodingService(),
   });
 
   @override
@@ -49,7 +47,6 @@ class _AddressSearchFieldState extends State<AddressSearchField> {
     }
     _debounce = Timer(const Duration(milliseconds: 400), () async {
       setState(() => _isLoading = true);
-      // Utilisation du service injecté
       final results = await widget.geocodingService.searchAddresses(value);
       if (!mounted) return;
       setState(() {

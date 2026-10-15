@@ -1,13 +1,14 @@
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 import '../models/trip.dart';
 import 'trip_service.dart';
 
-/// Implémentation réelle : appelle l'API backend.
+/// Implémentation réelle : appelle l'API backend Spring Boot.
 class HttpTripService implements TripService {
+  /// URL de l'API backend.
+  /// Sur émulateur Android : 10.0.2.2 correspond à localhost de l'hôte.
   static const String _baseUrl = 'http://10.0.2.2:8080';
 
   @override

@@ -5,6 +5,11 @@ import 'trip_card.dart';
 
 /// Panneau de résultats : liste défilable, redimensionnable et toujours
 /// récupérable après réduction.
+///
+/// Trois états : déployé (90%), replié au minimum (20%), masqué derrière une pill.
+/// La poignée est branchée à un DraggableScrollableController avec gestes
+/// onTap et onVerticalDragEnd. minChildSize = 0.2 (jamais 0, la poignée reste
+/// toujours saisissable).
 class TripBottomSheet extends StatefulWidget {
   const TripBottomSheet({
     super.key,
@@ -22,7 +27,6 @@ class TripBottomSheet extends StatefulWidget {
 }
 
 class _TripBottomSheetState extends State<TripBottomSheet> {
-  // Tailles exprimées en fraction de la zone disponible (sous le formulaire).
   static const double _peekSize = 0.2;
   static const double _defaultSize = 0.4;
   static const double _expandedSize = 0.9;
@@ -78,7 +82,7 @@ class _TripBottomSheetState extends State<TripBottomSheet> {
     return DraggableScrollableSheet(
       controller: _controller,
       initialChildSize: _defaultSize,
-      minChildSize: _peekSize, // Jamais 0 : la poignée reste toujours saisissable.
+      minChildSize: _peekSize,
       maxChildSize: _expandedSize,
       expand: false,
       builder: (BuildContext context, ScrollController scrollController) {
@@ -98,8 +102,6 @@ class _TripBottomSheetState extends State<TripBottomSheet> {
           ),
           child: LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
-              // Sur un écran très petit ou avec beaucoup de suggestions,
-              // on sacrifie le titre avant de déborder.
               final bool showTitle = constraints.maxHeight >= 110;
 
               return Column(
@@ -130,7 +132,6 @@ class _TripBottomSheetState extends State<TripBottomSheet> {
     );
   }
 
-  /// Poignée réellement interactive + bouton de réduction toujours accessible.
   Widget _buildTopBar() {
     return SizedBox(
       height: 40,
@@ -187,8 +188,6 @@ class _TripBottomSheetState extends State<TripBottomSheet> {
     );
   }
 
-  /// État masqué : la carte est entièrement visible, mais un bouton permanent
-  /// permet de récupérer la liste. Impossible de se retrouver bloqué.
   Widget _buildCollapsedPill(BuildContext context) {
     final int count = widget.trips.length;
     final String plural = count > 1 ? 's' : '';

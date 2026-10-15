@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
@@ -14,6 +13,9 @@ class RouteService {
   })  : _client = client ?? http.Client(),
         _baseUrl = baseUrl;
 
+  /// URL de l'instance OSRM.
+  /// Instance publique par défaut ; remplacer par l'URL locale en auto-hébergement
+  /// (par exemple 'http://10.0.2.2:5000' pour un émulateur Android).
   static const String _defaultBaseUrl = 'https://router.project-osrm.org';
 
   final http.Client _client;
@@ -59,7 +61,7 @@ class RouteService {
     final List<dynamic> coordinates =
         geometry['coordinates'] as List<dynamic>;
 
-    // GeoJSON utilise [longitude, latitude] ; LatLng attend (latitude, longitude).
+    // OSRM renvoie [longitude, latitude] ; LatLng attend (latitude, longitude).
     return coordinates.map((dynamic coordinate) {
       final List<dynamic> pair = coordinate as List<dynamic>;
       return LatLng(

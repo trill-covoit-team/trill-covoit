@@ -9,18 +9,16 @@ import 'services/http_trip_service.dart';
 import 'services/mock_trip_service.dart';
 import 'services/trip_service.dart';
 
-/// Lit la valeur de --dart-define=USE_MOCK=true au lancement.
-/// Par défaut : true, pour que `flutter run` fonctionne sans backend.
-const bool useMockData =
-bool.fromEnvironment('USE_MOCK', defaultValue: true);
+/// Bascule entre mock et API réelle via --dart-define=USE_MOCK=false.
+/// Par défaut : mock activé pour permettre le développement sans backend.
+const bool useMockData = bool.fromEnvironment('USE_MOCK', defaultValue: true);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('fr_FR');
 
-  // Sélection de l'implémentation selon la configuration de build.
   final TripService tripService =
-  useMockData ? MockTripService() : HttpTripService();
+      useMockData ? MockTripService() : HttpTripService();
 
   runApp(TrillCovoitApp(tripService: tripService));
 }

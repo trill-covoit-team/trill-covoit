@@ -1,15 +1,13 @@
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
-
 import '../models/address_suggestion.dart';
 
 /// Service de géocodage via Nominatim (OpenStreetMap).
 ///
 /// Pour passer à une instance auto-hébergée, il suffit de modifier [_baseUrl].
-/// Aucun autre changement n'est nécessaire dans le code.
 class GeocodingService {
   const GeocodingService();
+
   /// URL de l'instance Nominatim.
   /// Instance publique par défaut ; remplacer par l'URL locale en auto-hébergement
   /// (par exemple 'http://10.0.2.2:8080' pour un émulateur Android).
@@ -40,8 +38,8 @@ class GeocodingService {
     final data = json.decode(response.body) as List<dynamic>;
     return data
         .map((item) => AddressSuggestion.fromNominatimJson(
-      item as Map<String, dynamic>,
-    ))
+              item as Map<String, dynamic>,
+            ))
         .toList();
   }
 }
