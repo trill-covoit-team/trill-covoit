@@ -33,8 +33,8 @@ public class AuthService {
 
     @Transactional
     public MessageResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new EmailAlreadyUsedException("Cet email est déjà utilisé");
+        if (userRepository.existsByEmailIgnoreCase(request.getEmail())) {
+            throw new EmailAlreadyUsedException();
         }
 
         String code = generateVerificationCode();
@@ -57,14 +57,14 @@ public class AuthService {
 
     @Transactional
     public MessageResponse verifyEmail(VerifyEmailRequest request) {
-        AppUser user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new InvalidVerificationCodeException("Code de vérification invalide ou expiré"));
+        AppUser user = userRepository.findByEmailIgnoreCase(request.getEmail())
+                .orElseThrow(() -> new InvalidVerificationCodeException());
 
         if (user.getVerificationCode() == null
                 || !user.getVerificationCode().equals(request.getCode())
                 || user.getVerificationCodeExpiresAt() == null
                 || user.getVerificationCodeExpiresAt().isBefore(Instant.now())) {
-            throw new InvalidVerificationCodeException("Code de vérification invalide ou expiré");
+            throw new InvalidVerificationCodeException();
         }
 
         user.setEmailVerified(true);
@@ -72,20 +72,20 @@ public class AuthService {
         user.setVerificationCodeExpiresAt(null);
         userRepository.save(user);
 
-        return new MessageResponse("Votre adresse email a été validée avec succès. Vous pouvez maintenant vous connecter.");
+        return new MessageResponse("Votre adresse email a été validée. Vous pouvez maintenant vous connecter.");
     }
 
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
-        AppUser user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new InvalidCredentialsException("Identifiants invalides"));
+        AppUser user = userRepository.findByEmailIgnoreCase(request.getEmail())
+                .orElseThrow(() -> new InvalidCredentialsException());
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new InvalidCredentialsException("Identifiants invalides");
+            throw new InvalidCredentialsException();
         }
 
         if (!user.isEmailVerified()) {
-            throw new EmailNotVerifiedException("Veuillez valider votre adresse email avant de vous connecter");
+            throw new EmailNotVerifiedException();
         }
 
         return AuthResponse.builder()
@@ -94,7 +94,7 @@ public class AuthService {
                 .emailVerified(user.isEmailVerified())
                 .accessToken("mock-session-" + user.getUserId())
                 .tokenType("Bearer")
-                .message("Connexion réussie")
+                .message("Connexion réussie.")
                 .build();
     }
 

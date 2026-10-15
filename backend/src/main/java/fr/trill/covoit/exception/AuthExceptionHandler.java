@@ -47,7 +47,7 @@ public class AuthExceptionHandler {
 
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .code("VALIDATION_ERROR")
-                .message("Erreur de validation des données")
+                .message("Certaines informations sont invalides.")
                 .fieldErrors(fieldErrors)
                 .build();
 

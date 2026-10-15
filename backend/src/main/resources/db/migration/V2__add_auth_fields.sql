@@ -4,3 +4,6 @@ ALTER TABLE app_user
     ADD COLUMN verification_code_expires_at TIMESTAMPTZ,
     ADD COLUMN created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+CREATE UNIQUE INDEX uq_app_user_email_ignore_case
+    ON app_user (lower(email));

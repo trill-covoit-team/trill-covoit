@@ -14,11 +14,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class VerifyEmailRequest {
 
-    @NotBlank(message = "L'adresse email est obligatoire")
-    @Email(message = "Format d'adresse email invalide")
+    @NotBlank(message = "L'adresse email est obligatoire.")
+    @Email(message = "L'adresse email est invalide.")
     private String email;
 
-    @NotBlank(message = "Le code de validation est obligatoire")
-    @Pattern(regexp = "^\\d{6}$", message = "Le code de validation doit comporter exactement 6 chiffres")
+    @NotBlank(message = "Le code de validation est obligatoire.")
+    @Pattern(regexp = "^\\d{6}$", message = "Le code de validation doit contenir exactement 6 chiffres.")
     private String code;
 }
