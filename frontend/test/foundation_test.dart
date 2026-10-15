@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 import 'package:trill_covoit/core/constants/api_constants.dart';
 import 'package:trill_covoit/core/theme/app_theme.dart';
+import 'package:trill_covoit/features/auth/providers/auth_provider.dart';
 import 'package:trill_covoit/main.dart';
 
 void main() {
   test('La configuration API respecte la valeur de compilation', () {
     const override = String.fromEnvironment('API_BASE_URL');
-    final expected = override.isEmpty
-        ? 'http://10.0.2.2:8080'
-        : override;
+    final expected = override.isEmpty ? 'http://10.0.2.2:8080' : override;
 
     expect(ApiConstants.baseUrl, expected);
     expect(ApiConstants.requestTimeout, const Duration(seconds: 15));
@@ -25,9 +25,16 @@ void main() {
   });
 
   testWidgets('L’application démarre avec le thème partagé', (tester) async {
-    await tester.pumpWidget(const MainApp());
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => AuthProvider(),
+        child: const MainApp(),
+      ),
+    );
 
     expect(find.text('TRILL Covoit’'), findsOneWidget);
+    expect(find.text("Continuer avec l'email"), findsOneWidget);
+    expect(find.text("J'ai déjà un compte"), findsOneWidget);
 
     final context = tester.element(find.byType(Scaffold));
     expect(Theme.of(context).scaffoldBackgroundColor, AppTheme.background);
