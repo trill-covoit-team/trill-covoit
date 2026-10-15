@@ -7,12 +7,14 @@ environment:
   sdk: ^3.11.4
 
 dependencies:
-  flutter:
-    sdk: flutter
-  flutter_map: ^7.0.2
-  latlong2: ^0.9.1
+  provider: ^6.1.2
   http: ^1.2.1
-#  routing_client_dart: ^0.0.4
+  latlong2: ^0.10.1
+  flutter_map: ^8.3.2
+  intl: ^0.20.2
+  flutter_localizations:
+    sdk: flutter
+
 
 dev_dependencies:
   flutter_test:
@@ -21,3 +23,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/mocks/

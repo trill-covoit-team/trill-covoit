@@ -1,0 +1,52 @@
+[
+  {
+    "tripId": 100,
+    "departureAddress": "Gare de Toulouse-Matabiau, Toulouse",
+    "departureLatitude": 43.6045,
+    "departureLongitude": 1.4540,
+    "arrivalAddress": "Université Toulouse III - Paul Sabatier, Toulouse",
+    "arrivalLatitude": 43.5615,
+    "arrivalLongitude": 1.4620,
+    "departureDatetime": "2026-10-19T06:30:00Z",
+    "offeredSeats": 3,
+    "status": "PUBLISHED",
+    "driver": {
+      "userId": 1,
+      "firstName": "Alex",
+      "lastName": "Martin",
+      "photoUrl": null
+    },
+    "vehicle": {
+      "vehicleId": 10,
+      "brand": "Renault",
+      "model": "Clio",
+      "passengerCapacity": 4,
+      "status": "ACTIVE"
+    }
+  },
+  {
+    "tripId": 101,
+    "departureAddress": "Place du Capitole, Toulouse",
+    "departureLatitude": 43.6045,
+    "departureLongitude": 1.4440,
+    "arrivalAddress": "Université Toulouse III - Paul Sabatier, Toulouse",
+    "arrivalLatitude": 43.5615,
+    "arrivalLongitude": 1.4620,
+    "departureDatetime": "2026-10-19T07:00:00Z",
+    "offeredSeats": 2,
+    "status": "PUBLISHED",
+    "driver": {
+      "userId": 2,
+      "firstName": "Samira",
+      "lastName": "Benali",
+      "photoUrl": null
+    },
+    "vehicle": {
+      "vehicleId": 11,
+      "brand": "Peugeot",
+      "model": "208",
+      "passengerCapacity": 4,
+      "status": "ACTIVE"
+    }
+  }
+]
