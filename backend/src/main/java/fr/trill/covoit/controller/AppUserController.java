@@ -2,11 +2,13 @@ package fr.trill.covoit.controller;
 
 import fr.trill.covoit.model.AppUser;
 import fr.trill.covoit.repository.AppUserRepository;
+import fr.trill.covoit.upload.PhotoUploader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.Optional;
 
 @RestController
@@ -14,7 +16,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AppUserController {
     private final AppUserRepository appUserRepository;
-    private static final long MAX_FILE_SIZE = 5242880;
+    private final PhotoUploader photoUploader;
 
     @GetMapping("/{id}")
     public Optional<AppUser> getOneUser(@PathVariable int id) {
@@ -43,7 +45,7 @@ public class AppUserController {
         if (photoUrl != null) n.setPhotoUrl(photoUrl);
         if (bio != null) n.setBio(bio);
         appUserRepository.save(n);
-        return "saved";
+        return "Saved";
     }
 
     @PutMapping("/{id}/photo")
@@ -51,40 +53,34 @@ public class AppUserController {
             @PathVariable int id,
             @RequestParam("file") MultipartFile file) {
 
-        // Vérification utilisateur existe
         Optional<AppUser> userOpt = appUserRepository.findById(id);
         if (userOpt.isEmpty()) {
-            return ResponseEntity.status(404).body("404 not found");
+            return ResponseEntity.status(404).body("Utilisateur non trouvé");
         }
-        // Vérifications photo
-        if (file.isEmpty()) {
-            return ResponseEntity.badRequest().body("Fichier vide.");
-        }
-        if (file.getSize() > MAX_FILE_SIZE) {
-            return ResponseEntity.badRequest().body("La taille du fichier dépasse la limite autorisée de 5 Mio.");
-        }
-        String contentType = file.getContentType();
-        if (contentType == null || !(contentType.equals("image/jpeg") || contentType.equals("image/png"))) {
-            return ResponseEntity.badRequest().body("Le fichier fourni n'est pas une image valide (formats acceptés : JPEG, PNG).");
-        }
-        // sauvegarde
-        String fakePhotoUrl = "/AppUserPhotos/" + file.getOriginalFilename();
-        AppUser user = userOpt.get();
-        user.setPhotoUrl(fakePhotoUrl);
-        appUserRepository.save(user);
 
-        return ResponseEntity.ok("saved");
+        try {
+            String response = photoUploader.savePhoto(file, id, userOpt.get());
+            if (!response.equals("Saved")) {
+                return ResponseEntity.badRequest().body(response);
+            }
+            return ResponseEntity.ok(response);
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body("Erreur serveur lors de la sauvegarde");
+        }
     }
 
     @DeleteMapping("/{id}/photo")
-    public @ResponseBody String deleteOneUserPhoto(@PathVariable int id) {
-        Optional<AppUser> user = appUserRepository.findById(id);
-        if (user.isEmpty()) {
-            return "404 not found";
+    public ResponseEntity<String> deleteOneUserPhoto(@PathVariable int id) {
+        Optional<AppUser> userOpt = appUserRepository.findById(id);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404).body("Utilisateur non trouvé");
         }
-        AppUser n = user.get();
-        n.setPhotoUrl("");
-        appUserRepository.save(n);
-        return "Successfully deleted photo";
+
+        boolean success = photoUploader.deletePhoto(id, userOpt.get());
+        if (success) {
+            return ResponseEntity.ok("Successfully deleted photo");
+        } else {
+            return ResponseEntity.status(404).body("Photo not found for this user");
+        }
     }
 }
