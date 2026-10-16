@@ -1,19 +1,17 @@
 package fr.trill.covoit.controller;
 
 import fr.trill.covoit.service.VehicleService;
+import jakarta.validation.Valid;
 import fr.trill.covoit.model.Vehicle;
 import fr.trill.covoit.dto.VehicleRequest;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.apache.catalina.connector.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -46,13 +44,7 @@ public class VehicleController {
 
     // POST /users/me/vehicles
     @PostMapping
-    public ResponseEntity<?> insert(@RequestBody VehicleRequest request) {
-        if (!checkRequest(request)) {
-            return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body("Requête invalide");
-        }
-
+    public ResponseEntity<?> insert(@Valid @RequestBody VehicleRequest request) {
         Vehicle vehicle = service.insert(request);
         return ResponseEntity.ok(vehicle);
         
@@ -62,7 +54,7 @@ public class VehicleController {
     @PutMapping(params = "/{id}")
     public ResponseEntity<?> update(
             @RequestParam String idString,
-            @RequestBody VehicleRequest request) {
+            @Valid @RequestBody VehicleRequest request) {
         try {
             int id = Integer.parseInt(idString);
 
@@ -70,12 +62,6 @@ public class VehicleController {
                 return ResponseEntity
                     .status(HttpStatus.BAD_REQUEST)
                     .body("L'id du vehicule doit être un entier positif");
-            }
-
-            if (!checkRequest(request)) {
-                return ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body("Requête invalide");
             }
 
             Optional<Vehicle> vehicle = service.update(id, request);
@@ -95,17 +81,5 @@ public class VehicleController {
         }
         
     }
-    
-    private boolean checkRequest(VehicleRequest request) {
-        if (request == null) {return false;}
-        if (request.getBrand() == null || request.getBrand() == "") {return false;}
-        if (request.getModel() == null || request.getModel() == "") {return false;}
-        if (request.getPassengerCapacity() <= 0) {return false;}
-        if (request.getUserId() <= 0) {return false;} // TODO à enlever
-        if (request.getStatus() == null || request.getStatus() == "") {return false;}
-
-        return false;
-    }
-    
     
 }
