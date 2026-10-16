@@ -2,7 +2,7 @@ package fr.trill.covoit.controller;
 
 import fr.trill.covoit.service.VehicleService;
 import fr.trill.covoit.model.Vehicle;
-import fr.trill.covoit.dto.VehicleDto;
+import fr.trill.covoit.dto.VehicleRequest;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -96,7 +96,16 @@ public class VehicleController {
         
     }
     
-    
+    private boolean checkRequest(VehicleRequest request) {
+        if (request == null) {return false;}
+        if (request.getBrand() == null || request.getBrand() == "") {return false;}
+        if (request.getModel() == null || request.getModel() == "") {return false;}
+        if (request.getPassengerCapacity() <= 0) {return false;}
+        if (request.getUserId() <= 0) {return false;} // TODO à enlever
+        if (request.getStatus() == null || request.getStatus() == "") {return false;}
+
+        return false;
+    }
     
     
 }
