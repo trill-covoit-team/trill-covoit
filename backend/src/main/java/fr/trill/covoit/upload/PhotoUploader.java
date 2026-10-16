@@ -23,7 +23,7 @@ public class PhotoUploader {
         this.appUserRepository = appUserRepository;
     }
 
-    public String savePhoto(MultipartFile file, int id, AppUser user) throws IOException {
+    public String savePhoto(MultipartFile file, Long userId, AppUser user) throws IOException {
         if (file.isEmpty()) {
             return "Fichier vide.";
         }
@@ -45,19 +45,19 @@ public class PhotoUploader {
         Files.createDirectories(photoDirectory);
 
         // Sauvegarde physique
-        String fileName = "user_" + id + extension;
+        String fileName = "user_" + userId + extension;
         Path destinationPath = photoDirectory.resolve(fileName);
         file.transferTo(destinationPath);
 
         // Modification base de données
-        String photoUrl = photoDirectory.toString() + "/" + id;
+        String photoUrl = photoDirectory.toString() + "/" + userId;
         user.setPhotoUrl(photoUrl);
         appUserRepository.save(user);
 
         return "Saved";
     }
 
-    public boolean deletePhoto(int id, AppUser user) {
+    public boolean deletePhoto(Long userId, AppUser user) {
         try {
             boolean fichierSupprime = false;
 
@@ -65,7 +65,7 @@ public class PhotoUploader {
             if (Files.exists(photoDirectory)) {
                 try (var stream = Files.list(photoDirectory)) {
                     Path fichierTrouve = stream
-                            .filter(path -> path.getFileName().toString().startsWith("user_" + id + "."))
+                            .filter(path -> path.getFileName().toString().startsWith("user_" + userId + "."))
                             .findFirst()
                             .orElse(null);
 

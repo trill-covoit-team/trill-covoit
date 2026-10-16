@@ -1,6 +1,5 @@
-package fr.trill.covoit;
+package fr.trill.covoit.controller;
 
-import fr.trill.covoit.controller.AppUserController;
 import fr.trill.covoit.model.AppUser;
 import fr.trill.covoit.repository.AppUserRepository;
 import fr.trill.covoit.upload.PhotoUploader;
@@ -16,7 +15,8 @@ import org.springframework.mock.web.MockMultipartFile;
 import java.io.IOException;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -48,9 +48,9 @@ public class AppUserTest {
 
     @Test
     void testGetOneUserFound() {
-        when(appUserRepository.findById(1)).thenReturn(Optional.of(user));
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(user));
 
-        Optional<AppUser> result = appUserController.getOneUser(1);
+        Optional<AppUser> result = appUserController.getOneUser(1L);
 
         assertTrue(result.isPresent());
         assertEquals("Marc", result.get().getFirstName());
@@ -58,10 +58,10 @@ public class AppUserTest {
 
     @Test
     void testGetOneUserNotFound() {
-        when(appUserRepository.findById(4)).thenReturn(Optional.empty());
+        when(appUserRepository.findById(4L)).thenReturn(Optional.empty());
 
         // When
-        Optional<AppUser> result = appUserController.getOneUser(4);
+        Optional<AppUser> result = appUserController.getOneUser(4L);
 
         // Then
         assertTrue(result.isEmpty());
@@ -69,11 +69,11 @@ public class AppUserTest {
 
     @Test
     void testPatchOneUser() {
-        when(appUserRepository.findById(1)).thenReturn(Optional.of(user));
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(user));
         when(appUserRepository.save(any(AppUser.class))).thenReturn(user);
 
         String response = appUserController.patchOneUser(
-                1,
+                1L,
                 null,                 // email
                 null,                       // passwordHash
                 null,                       // emailVerified
@@ -92,8 +92,8 @@ public class AppUserTest {
 
     @Test
     void testUploadPhotoSuccess() throws IOException {
-        when(appUserRepository.findById(1)).thenReturn(Optional.of(user));
-        when(photoUploader.savePhoto(any(), eq(1), any(AppUser.class))).thenReturn("Saved");
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(photoUploader.savePhoto(any(), eq(1L), any(AppUser.class))).thenReturn("Saved");
 
         MockMultipartFile file = new MockMultipartFile(
                 "file",
@@ -102,19 +102,19 @@ public class AppUserTest {
                 "contenu-image".getBytes()
         );
 
-        ResponseEntity<String> response = appUserController.putOneUserPhoto(1, file);
+        ResponseEntity<String> response = appUserController.putOneUserPhoto(1L, file);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals("Saved", response.getBody());
 
-        verify(photoUploader, times(1)).savePhoto(any(), eq(1), any(AppUser.class));
+        verify(photoUploader, times(1)).savePhoto(any(), eq(1L), any(AppUser.class));
     }
 
     @Test
     void testUploadPhotoInvalidType() throws IOException {
         // Given
-        when(appUserRepository.findById(1)).thenReturn(Optional.of(user));
-        when(photoUploader.savePhoto(any(), eq(1), any(AppUser.class))).thenReturn("Le fichier fourni n'est pas une image valide (formats acceptés : JPEG, PNG).");
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(photoUploader.savePhoto(any(), eq(1L), any(AppUser.class))).thenReturn("Le fichier fourni n'est pas une image valide (formats acceptés : JPEG, PNG).");
         // Fichier avec un mauvais type MIME (ex: texte)
         MockMultipartFile file = new MockMultipartFile(
                 "file",
@@ -123,7 +123,7 @@ public class AppUserTest {
                 "texte simple".getBytes()
         );
 
-        ResponseEntity<String> response = appUserController.putOneUserPhoto(1, file);
+        ResponseEntity<String> response = appUserController.putOneUserPhoto(1L, file);
 
         assertEquals(400, response.getStatusCode().value());
         assertTrue(response.getBody().contains("pas une image valide"));
@@ -131,14 +131,14 @@ public class AppUserTest {
 
     @Test
     void testDeletePhotoSuccess() {
-        when(appUserRepository.findById(1)).thenReturn(Optional.of(user));
-        when(photoUploader.deletePhoto(eq(1), any(AppUser.class))).thenReturn(true);
+        when(appUserRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(photoUploader.deletePhoto(eq(1L), any(AppUser.class))).thenReturn(true);
 
-        ResponseEntity<String> response = appUserController.deleteOneUserPhoto(1);
+        ResponseEntity<String> response = appUserController.deleteOneUserPhoto(1L);
 
         assertEquals(200, response.getStatusCode().value());
         assertEquals("Successfully deleted photo", response.getBody());
 
-        verify(photoUploader, times(1)).deletePhoto(eq(1), any(AppUser.class));
+        verify(photoUploader, times(1)).deletePhoto(eq(1L), any(AppUser.class));
     }
 }

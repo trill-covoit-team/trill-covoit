@@ -18,13 +18,13 @@ public class AppUserController {
     private final AppUserRepository appUserRepository;
     private final PhotoUploader photoUploader;
 
-    @GetMapping("/{id}")
-    public Optional<AppUser> getOneUser(@PathVariable int id) {
-        return appUserRepository.findById(id);
+    @GetMapping("/{userId}")
+    public Optional<AppUser> getOneUser(@PathVariable Long userId) {
+        return appUserRepository.findById(userId);
     }
 
-    @PatchMapping("/{id}")
-    public @ResponseBody String patchOneUser(@PathVariable int id,
+    @PatchMapping("/{userId}")
+    public @ResponseBody String patchOneUser(@PathVariable Long userId,
                                              @RequestParam(required = false) String email,
                                              @RequestParam(required = false) String passwordHash,
                                              @RequestParam(required = false) Boolean emailVerified,
@@ -32,7 +32,7 @@ public class AppUserController {
                                              @RequestParam(required = false) String lastName,
                                              @RequestParam(required = false) String photoUrl,
                                              @RequestParam(required = false) String bio) {
-        Optional<AppUser> user = appUserRepository.findById(id);
+        Optional<AppUser> user = appUserRepository.findById(userId);
         if (user.isEmpty()) {
             return "404 not found";
         }
@@ -48,18 +48,18 @@ public class AppUserController {
         return "Saved";
     }
 
-    @PutMapping("/{id}/photo")
+    @PutMapping("/{userId}/photo")
     public ResponseEntity<String> putOneUserPhoto(
-            @PathVariable int id,
+            @PathVariable Long userId,
             @RequestParam("file") MultipartFile file) {
 
-        Optional<AppUser> userOpt = appUserRepository.findById(id);
+        Optional<AppUser> userOpt = appUserRepository.findById(userId);
         if (userOpt.isEmpty()) {
             return ResponseEntity.status(404).body("Utilisateur non trouvé");
         }
 
         try {
-            String response = photoUploader.savePhoto(file, id, userOpt.get());
+            String response = photoUploader.savePhoto(file, userId, userOpt.get());
             if (!response.equals("Saved")) {
                 return ResponseEntity.badRequest().body(response);
             }
@@ -69,14 +69,14 @@ public class AppUserController {
         }
     }
 
-    @DeleteMapping("/{id}/photo")
-    public ResponseEntity<String> deleteOneUserPhoto(@PathVariable int id) {
-        Optional<AppUser> userOpt = appUserRepository.findById(id);
+    @DeleteMapping("/{userId}/photo")
+    public ResponseEntity<String> deleteOneUserPhoto(@PathVariable Long userId) {
+        Optional<AppUser> userOpt = appUserRepository.findById(userId);
         if (userOpt.isEmpty()) {
             return ResponseEntity.status(404).body("Utilisateur non trouvé");
         }
 
-        boolean success = photoUploader.deletePhoto(id, userOpt.get());
+        boolean success = photoUploader.deletePhoto(userId, userOpt.get());
         if (success) {
             return ResponseEntity.ok("Successfully deleted photo");
         } else {
