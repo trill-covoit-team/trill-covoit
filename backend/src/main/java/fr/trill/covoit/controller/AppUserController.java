@@ -47,7 +47,7 @@ public class AppUserController {
     }
 
     @PutMapping("/{id}/photo")
-    public ResponseEntity<String> patchOneUser(
+    public ResponseEntity<String> putOneUserPhoto(
             @PathVariable int id,
             @RequestParam("file") MultipartFile file) {
 
@@ -77,7 +77,7 @@ public class AppUserController {
     }
 
     @DeleteMapping("/{id}/photo")
-    public @ResponseBody String patchOneUser(@PathVariable int id) {
+    public @ResponseBody String deleteOneUserPhoto(@PathVariable int id) {
         Optional<AppUser> user = appUserRepository.findById(id);
         if (user.isEmpty()) {
             return "404 not found";
