@@ -3,13 +3,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trill_covoit/core/theme/app_theme.dart';
+import 'package:trill_covoit/core/theme/tokens.dart';
 import 'package:trill_covoit/features/auth/providers/auth_provider.dart';
 import 'package:trill_covoit/features/auth/screens/home_screen.dart';
 import 'package:trill_covoit/features/auth/screens/landing_screen.dart';
@@ -328,36 +329,91 @@ void main() {
       await _pumpApp(tester, (_) async => _message('Non utilisé'));
       await _openForm(tester);
       for (final (link, title, content) in [
+        ('terms-link', "Conditions d'utilisation", 'Version de démonstration'),
         (
-          "conditions d'utilisation",
-          "Conditions d'utilisation",
-          'Version de démonstration',
-        ),
-        (
-          'politique de confidentialité',
+          'privacy-link',
           'Politique de confidentialité',
           'Information sur le traitement des données personnelles',
         ),
       ]) {
-        final richText = find.byKey(const ValueKey('terms-text'));
-        await tester.ensureVisible(richText);
-        final paragraph = tester.renderObject<RenderParagraph>(richText);
-        final sentence = paragraph.text.toPlainText();
-        final start = sentence.indexOf(link);
-        final boxes = paragraph.getBoxesForSelection(
-          TextSelection(baseOffset: start, extentOffset: start + link.length),
-        );
-        await tester.tapAt(
-          paragraph.localToGlobal(boxes.first.toRect().center),
-        );
-        await tester.pumpAndSettle();
-        expect(find.text(title), findsOneWidget);
+        await _tap(tester, find.byKey(ValueKey(link)));
+        expect(find.text(title), findsNWidgets(2));
         expect(find.textContaining(content), findsOneWidget);
         await _tap(tester, find.byTooltip('Fermer'));
         expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
       }
     },
   );
+
+  testWidgets(
+    'Les liens légaux sont accessibles au clavier et montrent le focus',
+    (tester) async {
+      await _pumpApp(tester, (_) async => _message('Non utilisé'));
+      await _openForm(tester);
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pump();
+      for (final (key, keyboardKey, content) in [
+        ('terms-link', LogicalKeyboardKey.enter, 'Version de démonstration'),
+        (
+          'privacy-link',
+          LogicalKeyboardKey.space,
+          'Information sur le traitement des données personnelles',
+        ),
+      ]) {
+        final link = find.byKey(ValueKey(key));
+        await tester.ensureVisible(link);
+        var reached = false;
+        for (var i = 0; i < 15; i++) {
+          final focused = FocusManager.instance.primaryFocus?.context;
+          if (focused != null &&
+              (focused == tester.element(link) ||
+                  focused.findAncestorWidgetOfExactType<TextButton>()?.key ==
+                      ValueKey(key))) {
+            reached = true;
+            break;
+          }
+          await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+          await tester.pumpAndSettle();
+        }
+        expect(reached, isTrue);
+        final button = tester.widget<TextButton>(link);
+        expect(
+          button.style!.side!.resolve({WidgetState.focused})!.color,
+          Theme.of(tester.element(link)).colorScheme.primary,
+        );
+        expect(button.style!.side!.resolve({}), BorderSide.none);
+        await tester.sendKeyEvent(keyboardKey);
+        await tester.pumpAndSettle();
+        expect(find.textContaining(content), findsOneWidget);
+        await _tap(tester, find.byTooltip('Fermer'));
+        expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
+      }
+    },
+  );
+
+  testWidgets('Les liens légaux gardent une cible de 48 dp sur écran étroit', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await _pumpApp(tester, (_) async => _message('Non utilisé'));
+    await _openForm(tester);
+    for (final key in ['terms-link', 'privacy-link']) {
+      final link = find.byKey(ValueKey(key));
+      await tester.ensureVisible(link);
+      await tester.pumpAndSettle();
+      final rect = tester.getRect(link);
+      expect(rect.width, greaterThanOrEqualTo(kMinTouch));
+      expect(rect.height, greaterThanOrEqualTo(kMinTouch));
+      expect(rect.left, greaterThanOrEqualTo(0));
+      expect(rect.right, lessThanOrEqualTo(320));
+    }
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('La robustesse reste indicative et le titre reste unique', (
     tester,
@@ -818,6 +874,14 @@ void main() {
         expect(find.byType(CircularProgressIndicator), findsOneWidget);
         expect(tester.widget<TextFormField>(_emailField).enabled, isFalse);
         expect(tester.widget<TextFormField>(_passwordField).enabled, isFalse);
+        if (!isLogin) {
+          for (final key in ['terms-link', 'privacy-link']) {
+            expect(
+              tester.widget<TextButton>(find.byKey(ValueKey(key))).onPressed,
+              isNull,
+            );
+          }
+        }
         expect(
           tester
               .widget<TextButton>(
