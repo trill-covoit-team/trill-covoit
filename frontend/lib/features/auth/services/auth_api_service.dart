@@ -106,7 +106,7 @@ class AuthApiService {
     try {
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       final message = body['message'] ?? body['error'] ?? 'Une erreur est survenue (${response.statusCode})';
-      final code = body['errorCode'] as String?;
+      final code = body['code'] as String?;
       return AuthException(
         message: message.toString(),
         statusCode: response.statusCode,

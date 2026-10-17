@@ -43,7 +43,10 @@ void main() {
     test('Lève AuthException avec code 409 si email déjà utilisé', () async {
       final mockClient = MockClient((request) async {
         return http.Response(
-          jsonEncode({'message': 'Cet email est déjà utilisé'}),
+          jsonEncode({
+            'code': 'EMAIL_ALREADY_USED',
+            'message': 'Cet email est déjà utilisé',
+          }),
           409,
           headers: {'content-type': 'application/json'},
         );
@@ -52,8 +55,15 @@ void main() {
       final service = AuthApiService(client: mockClient, baseUrl: baseUrl);
 
       expect(
-        () => service.register(email: 'existant@univ.fr', password: 'Password123!'),
-        throwsA(isA<AuthException>().having((e) => e.statusCode, 'statusCode', 409)),
+        () => service.register(
+          email: 'existant@univ.fr',
+          password: 'Password123!',
+        ),
+        throwsA(
+          isA<AuthException>()
+              .having((e) => e.statusCode, 'statusCode', 409)
+              .having((e) => e.errorCode, 'errorCode', 'EMAIL_ALREADY_USED'),
+        ),
       );
     });
   });
@@ -66,7 +76,10 @@ void main() {
         expect(payload['code'], '123456');
 
         return http.Response(
-          jsonEncode({'emailVerified': true, 'message': 'Email validé avec succès.'}),
+          jsonEncode({
+            'emailVerified': true,
+            'message': 'Email validé avec succès.',
+          }),
           200,
           headers: {'content-type': 'application/json'},
         );
@@ -94,7 +107,13 @@ void main() {
 
       expect(
         () => service.verifyEmail(email: 'etudiant@univ.fr', code: '000000'),
-        throwsA(isA<AuthException>().having((e) => e.message, 'message', contains('invalide'))),
+        throwsA(
+          isA<AuthException>().having(
+            (e) => e.message,
+            'message',
+            contains('invalide'),
+          ),
+        ),
       );
     });
   });
@@ -133,7 +152,8 @@ void main() {
       final mockClient = MockClient((request) async {
         return http.Response(
           jsonEncode({
-            'message': 'Veuillez valider votre adresse email avant de vous connecter',
+            'message':
+                'Veuillez valider votre adresse email avant de vous connecter',
           }),
           403,
           headers: {'content-type': 'application/json'},
@@ -143,8 +163,13 @@ void main() {
       final service = AuthApiService(client: mockClient, baseUrl: baseUrl);
 
       expect(
-        () => service.login(email: 'unverified@univ.fr', password: 'Password123!'),
-        throwsA(isA<AuthException>().having((e) => e.statusCode, 'statusCode', 403)),
+        () => service.login(
+          email: 'unverified@univ.fr',
+          password: 'Password123!',
+        ),
+        throwsA(
+          isA<AuthException>().having((e) => e.statusCode, 'statusCode', 403),
+        ),
       );
     });
   });
