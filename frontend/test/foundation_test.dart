@@ -32,6 +32,42 @@ void main() {
     expect(theme.textTheme.headlineMedium?.fontWeight, FontWeight.w800);
   });
 
+  test('Les erreurs restent contrastées dans les deux thèmes', () {
+    double contrast(Color first, Color second) {
+      final firstLuminance = first.computeLuminance();
+      final secondLuminance = second.computeLuminance();
+      return (math.max(firstLuminance, secondLuminance) + .05) /
+          (math.min(firstLuminance, secondLuminance) + .05);
+    }
+
+    for (final theme in [AppTheme.light, AppTheme.dark]) {
+      final scheme = theme.colorScheme;
+      expect(
+        scheme.error,
+        theme.brightness == Brightness.dark
+            ? AppColors.errorDark
+            : AppColors.error,
+      );
+      for (final surface in [
+        scheme.surface,
+        scheme.surfaceContainerHighest,
+        theme.scaffoldBackgroundColor,
+      ]) {
+        expect(contrast(scheme.error, surface), greaterThanOrEqualTo(4.5));
+      }
+      expect(contrast(scheme.onError, scheme.error), greaterThanOrEqualTo(4.5));
+      final inputs = theme.inputDecorationTheme;
+      expect(
+        (inputs.errorBorder! as OutlineInputBorder).borderSide.color,
+        scheme.error,
+      );
+      expect(
+        (inputs.focusedErrorBorder! as OutlineInputBorder).borderSide.color,
+        scheme.error,
+      );
+    }
+  });
+
   testWidgets('L’application démarre avec le thème partagé', (tester) async {
     await tester.pumpWidget(
       ChangeNotifierProvider(

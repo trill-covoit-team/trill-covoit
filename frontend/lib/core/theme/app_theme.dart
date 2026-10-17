@@ -14,9 +14,11 @@ class AppTheme {
     final surface = isDark ? AppColors.surfaceDark : AppColors.surface;
     final surfaceAlt = isDark ? AppColors.surfaceAltDark : AppColors.surfaceAlt;
     final border = isDark ? AppColors.borderDark : AppColors.border;
+    final error = isDark ? AppColors.errorDark : AppColors.error;
     final text = isDark ? AppColors.textPrimaryDark : AppColors.textPrimary;
-    final textSub =
-        isDark ? AppColors.textSecondaryDark : AppColors.textSecondary;
+    final textSub = isDark
+        ? AppColors.textSecondaryDark
+        : AppColors.textSecondary;
 
     final scheme = ColorScheme(
       brightness: b,
@@ -24,8 +26,8 @@ class AppTheme {
       onPrimary: onPrimary,
       secondary: AppColors.accent,
       onSecondary: AppColors.textPrimary,
-      error: AppColors.error,
-      onError: Colors.white,
+      error: error,
+      onError: isDark ? AppColors.textPrimary : AppColors.surface,
       surface: surface,
       onSurface: text,
       surfaceContainerHighest: surfaceAlt,
@@ -35,7 +37,11 @@ class AppTheme {
     final base = GoogleFonts.plusJakartaSansTextTheme();
     TextStyle s(double size, FontWeight w, {double h = 1.3, Color? c}) =>
         GoogleFonts.plusJakartaSans(
-            fontSize: size, fontWeight: w, height: h, color: c ?? text);
+          fontSize: size,
+          fontWeight: w,
+          height: h,
+          color: c ?? text,
+        );
 
     final textTheme = base.copyWith(
       displayLarge: s(34, FontWeight.w800, h: 1.15),
@@ -49,12 +55,13 @@ class AppTheme {
     );
 
     OutlineInputBorder field(Color c, [double w = 1]) => OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide(color: c, width: w),
-        );
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      borderSide: BorderSide(color: c, width: w),
+    );
 
     final shape = RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.md));
+      borderRadius: BorderRadius.circular(AppRadius.md),
+    );
     const minSize = Size.fromHeight(kMinTouch + 4);
 
     return ThemeData(
@@ -100,23 +107,27 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surface,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         hintStyle: textTheme.bodyMedium,
         border: field(border),
         enabledBorder: field(border),
         focusedBorder: field(primary, 2),
-        errorBorder: field(AppColors.error),
-        focusedErrorBorder: field(AppColors.error, 2),
+        errorBorder: field(error),
+        focusedErrorBorder: field(error, 2),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: surfaceAlt,
-        selectedColor:
-            isDark ? AppColors.surfaceAltDark : AppColors.primarySoft,
+        selectedColor: isDark
+            ? AppColors.surfaceAltDark
+            : AppColors.primarySoft,
         side: BorderSide.none,
         labelStyle: textTheme.labelSmall,
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.sm)),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+        ),
       ),
       cardTheme: CardThemeData(
         color: surface,
@@ -131,14 +142,16 @@ class AppTheme {
         backgroundColor: surface,
         showDragHandle: true,
         shape: const RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppRadius.lg),
+          ),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surface,
-        indicatorColor:
-            isDark ? AppColors.surfaceAltDark : AppColors.primarySoft,
+        indicatorColor: isDark
+            ? AppColors.surfaceAltDark
+            : AppColors.primarySoft,
         height: 68,
         labelTextStyle: WidgetStatePropertyAll(textTheme.labelSmall),
       ),
