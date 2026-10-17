@@ -39,7 +39,10 @@ class _MainAppState extends State<MainApp> {
     return MaterialApp(
       navigatorKey: _navigatorKey,
       title: 'TRILL Covoit’',
-      theme: AppTheme.lightTheme,
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.system,
+      debugShowCheckedModeBanner: false,
       home: isAuthenticated ? const HomeScreen() : const LandingScreen(),
     );
   }

@@ -1,6 +1,10 @@
+import 'dart:math' as math;
+import 'dart:ui' show Tangent;
+
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
-import 'package:trill_covoit/core/theme/app_theme.dart';
+import 'package:trill_covoit/core/theme/tokens.dart';
 import 'package:trill_covoit/features/auth/providers/auth_provider.dart';
 import 'package:trill_covoit/features/auth/screens/login_register_screen.dart';
 
@@ -20,123 +24,413 @@ class LandingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
+    final theme = Theme.of(context);
     return Scaffold(
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: 440,
-                    minHeight: constraints.maxHeight > 48
-                        ? constraints.maxHeight - 48
-                        : 0,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.directions_car_outlined,
-                            size: 48,
-                            color: AppTheme.primary,
-                          ),
-                          const SizedBox(height: 20),
-                          Text('TRILL Covoit’', style: textTheme.titleMedium),
-                          const SizedBox(height: 32),
-                          Text(
-                            'Covoiturez sans vous engager',
-                            style: textTheme.headlineLarge,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Partagez vos trajets du quotidien, '
-                            'à votre rythme.',
-                            style: textTheme.bodyLarge?.copyWith(
-                              color: AppTheme.muted,
-                            ),
-                          ),
-                          const SizedBox(height: 28),
-                          const Wrap(
-                            spacing: 12,
-                            runSpacing: 12,
+        child: Column(
+          children: [
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final visualSize = Size(
+                    constraints.maxWidth,
+                    constraints.maxHeight * .5,
+                  );
+                  final geometry = _RouteGeometry(
+                    visualSize,
+                    theme.textTheme.labelSmall!.copyWith(
+                      color: theme.colorScheme.onSurface,
+                    ),
+                    MediaQuery.textScalerOf(context),
+                  );
+                  return SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          height: visualSize.height,
+                          child: Stack(
+                            fit: StackFit.expand,
                             children: [
-                              _CommunityLabel(
-                                icon: Icons.business_outlined,
-                                label: 'Entreprise',
+                              ExcludeSemantics(
+                                child: CustomPaint(
+                                  painter: _RoutePainter(
+                                    primary: theme.colorScheme.primary,
+                                    background: theme
+                                        .colorScheme
+                                        .surfaceContainerHighest,
+                                    foreground: theme.colorScheme.onPrimary,
+                                    labelStyle: theme.textTheme.labelSmall!
+                                        .copyWith(
+                                          color: theme.colorScheme.onSurface,
+                                        ),
+                                    textScaler: MediaQuery.textScalerOf(
+                                      context,
+                                    ),
+                                    geometry: geometry,
+                                  ),
+                                ),
                               ),
-                              _CommunityLabel(
-                                icon: Icons.school_outlined,
-                                label: 'École',
+                              Positioned(
+                                left:
+                                    geometry.marker.position.dx -
+                                    _carSize.width / 2,
+                                top:
+                                    geometry.marker.position.dy -
+                                    _carSize.height / 2,
+                                width: _carSize.width,
+                                height: _carSize.height,
+                                child: ExcludeSemantics(
+                                  child: IgnorePointer(
+                                    child: Transform.rotate(
+                                      key: const ValueKey(
+                                        'welcome-car-rotation',
+                                      ),
+                                      angle:
+                                          geometry.marker.angle + math.pi / 2,
+                                      child: SvgPicture.asset(
+                                        'assets/images/car_top.svg',
+                                        key: const ValueKey('welcome-car'),
+                                        width: _carSize.width,
+                                        height: _carSize.height,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
-                              _CommunityLabel(
-                                icon: Icons.home_outlined,
-                                label: 'Quartier',
+                              Padding(
+                                padding: const EdgeInsets.all(AppSpace.s24),
+                                child: Align(
+                                  alignment: Alignment.topLeft,
+                                  child: Row(
+                                    children: [
+                                      ExcludeSemantics(
+                                        child: Container(
+                                          padding: const EdgeInsets.all(
+                                            AppSpace.s8,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: theme.colorScheme.primary,
+                                            borderRadius: BorderRadius.circular(
+                                              AppRadius.sm,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.route,
+                                            size: AppSpace.s24,
+                                            color: theme.colorScheme.onPrimary,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: AppSpace.s12),
+                                      Flexible(
+                                        child: Text(
+                                          'TRILL Covoit’',
+                                          style: theme.textTheme.titleLarge,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 48),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            ElevatedButton(
-                              onPressed: () =>
-                                  _openForm(context, initialLogin: false),
-                              child: const Text("Continuer avec l'email"),
-                            ),
-                            const SizedBox(height: 12),
-                            OutlinedButton(
-                              onPressed: () =>
-                                  _openForm(context, initialLogin: true),
-                              child: const Text("J'ai déjà un compte"),
-                            ),
-                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                ),
+                        Padding(
+                          padding: const EdgeInsets.all(AppSpace.s24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                'Le trajet du quotidien, partagé.',
+                                style: theme.textTheme.displayLarge,
+                              ),
+                              const SizedBox(height: AppSpace.s12),
+                              Text(
+                                'Partagez vos trajets avec vos voisins et collègues.',
+                                style: theme.textTheme.bodyLarge,
+                              ),
+                              const SizedBox(height: AppSpace.s24),
+                              const _BenefitRow(
+                                icon: Icons.savings_outlined,
+                                label: "Jusqu'à 70 % moins cher qu'en solo",
+                              ),
+                              const SizedBox(height: AppSpace.s12),
+                              const _BenefitRow(
+                                icon: Icons.people_outline,
+                                label: 'Des voisins qui font le même trajet',
+                              ),
+                              const SizedBox(height: AppSpace.s12),
+                              const _BenefitRow(
+                                icon: Icons.eco_outlined,
+                                label: 'Moins de CO2 chaque jour',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
-            );
-          },
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpace.s24,
+                AppSpace.s8,
+                AppSpace.s24,
+                AppSpace.s16,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  FilledButton(
+                    onPressed: () => _openForm(context, initialLogin: false),
+                    child: const Text('Commencer'),
+                  ),
+                  const SizedBox(height: AppSpace.s12),
+                  OutlinedButton(
+                    onPressed: () => _openForm(context, initialLogin: true),
+                    child: const Text("J'ai déjà un compte"),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _CommunityLabel extends StatelessWidget {
-  const _CommunityLabel({required this.icon, required this.label});
+const _carSize = Size(28, 50);
+
+class _RouteGeometry {
+  _RouteGeometry(Size size, TextStyle labelStyle, TextScaler textScaler) {
+    route = Path()
+      ..moveTo(size.width * .18, size.height * .78)
+      ..cubicTo(
+        size.width * .05,
+        size.height * .4,
+        size.width * .85,
+        size.height * .85,
+        size.width * .68,
+        size.height * .48,
+      )
+      ..cubicTo(
+        size.width * .55,
+        size.height * .22,
+        size.width * .72,
+        size.height * .35,
+        size.width * .82,
+        size.height * .25,
+      );
+    pins = [
+      Offset(size.width * .18, size.height * .78),
+      Offset(size.width * .68, size.height * .48),
+      Offset(size.width * .82, size.height * .25),
+    ];
+    labels = [
+      _RouteLabel(
+        'Maison',
+        size,
+        labelStyle,
+        textScaler,
+        pins.first.translate(AppSpace.s24, -AppSpace.s24),
+      ),
+      _RouteLabel(
+        'Travail',
+        size,
+        labelStyle,
+        textScaler,
+        pins.last.translate(-AppSpace.s24, -AppSpace.s24),
+        alignRight: true,
+      ),
+    ];
+    final obstacles = [
+      ...labels.map((label) => label.bounds),
+      ...pins.map(
+        (pin) => Rect.fromLTRB(
+          pin.dx - AppSpace.s12,
+          pin.dy - AppSpace.s32,
+          pin.dx + AppSpace.s12,
+          pin.dy,
+        ),
+      ),
+    ];
+    final metric = route.computeMetrics().first;
+    // La position et l'angle partagés évitent tout décalage entre ombre et SVG.
+    for (final fraction in [.45, .50, .55, .40, .35]) {
+      final tangent = metric.getTangentForOffset(metric.length * fraction)!;
+      marker = tangent;
+      final angle = tangent.angle + math.pi / 2;
+      final width =
+          _carSize.width * math.cos(angle).abs() +
+          _carSize.height * math.sin(angle).abs();
+      final height =
+          _carSize.width * math.sin(angle).abs() +
+          _carSize.height * math.cos(angle).abs();
+      final bounds = Rect.fromCenter(
+        center: tangent.position,
+        width: width,
+        height: height,
+      ).inflate(AppSpace.s4);
+      if (!obstacles.any(bounds.overlaps)) break;
+    }
+  }
+
+  late final Path route;
+  late final List<Offset> pins;
+  late final List<_RouteLabel> labels;
+  late Tangent marker;
+}
+
+class _RouteLabel {
+  _RouteLabel(
+    String label,
+    Size size,
+    TextStyle style,
+    TextScaler scaler,
+    Offset anchor, {
+    bool alignRight = false,
+  }) {
+    text = TextPainter(
+      text: TextSpan(text: label, style: style),
+      textDirection: TextDirection.ltr,
+      textScaler: scaler,
+    )..layout(maxWidth: size.width * .4);
+    final left = (alignRight ? anchor.dx - text.width : anchor.dx).clamp(
+      AppSpace.s8,
+      size.width - text.width - AppSpace.s8,
+    );
+    origin = Offset(left, anchor.dy);
+    bounds = (origin & text.size).inflate(AppSpace.s4);
+  }
+
+  late final TextPainter text;
+  late final Offset origin;
+  late final Rect bounds;
+}
+
+class _BenefitRow extends StatelessWidget {
+  const _BenefitRow({required this.icon, required this.label});
 
   final IconData icon;
   final String label;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppTheme.border),
-        borderRadius: BorderRadius.circular(12),
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      ExcludeSemantics(
+        child: Icon(
+          icon,
+          size: AppSpace.s24,
+          color: Theme.of(context).colorScheme.primary,
+        ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 24),
-          const SizedBox(height: 8),
-          Text(label, style: Theme.of(context).textTheme.labelLarge),
-        ],
+      const SizedBox(width: AppSpace.s12),
+      Expanded(
+        child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
       ),
+    ],
+  );
+}
+
+class _RoutePainter extends CustomPainter {
+  const _RoutePainter({
+    required this.primary,
+    required this.background,
+    required this.foreground,
+    required this.labelStyle,
+    required this.textScaler,
+    required this.geometry,
+  });
+
+  final Color primary;
+  final Color background;
+  final Color foreground;
+  final TextStyle labelStyle;
+  final TextScaler textScaler;
+  final _RouteGeometry geometry;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bounds = Offset.zero & size;
+    canvas.drawRect(
+      bounds,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [background, primary],
+        ).createShader(bounds),
     );
+    canvas.drawPath(
+      geometry.route,
+      Paint()
+        ..color = foreground
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = AppSpace.s4,
+    );
+    for (final point in geometry.pins) {
+      final pin = Path()
+        ..moveTo(point.dx, point.dy)
+        ..quadraticBezierTo(
+          point.dx - AppSpace.s24,
+          point.dy - AppSpace.s32,
+          point.dx,
+          point.dy - AppSpace.s32,
+        )
+        ..quadraticBezierTo(
+          point.dx + AppSpace.s24,
+          point.dy - AppSpace.s32,
+          point.dx,
+          point.dy,
+        );
+      canvas.drawPath(pin, Paint()..color = foreground);
+      canvas.drawCircle(
+        point.translate(0, -AppSpace.s24),
+        AppSpace.s4,
+        Paint()..color = primary,
+      );
+    }
+    canvas.save();
+    canvas.translate(
+      geometry.marker.position.dx,
+      geometry.marker.position.dy + AppShadow.low.first.offset.dy,
+    );
+    canvas.rotate(geometry.marker.angle + math.pi / 2);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset.zero,
+        width: AppSpace.s24,
+        height: AppSpace.s48,
+      ),
+      Paint()
+        ..color = AppColors.textPrimary.withAlpha(64)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, AppSpace.s4),
+    );
+    canvas.restore();
+    for (final label in geometry.labels) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          label.bounds,
+          const Radius.circular(AppRadius.sm),
+        ),
+        Paint()..color = background,
+      );
+      label.text.paint(canvas, label.origin);
+    }
   }
+
+  @override
+  bool shouldRepaint(_RoutePainter oldDelegate) =>
+      primary != oldDelegate.primary ||
+      background != oldDelegate.background ||
+      foreground != oldDelegate.foreground ||
+      geometry != oldDelegate.geometry ||
+      labelStyle != oldDelegate.labelStyle ||
+      textScaler != oldDelegate.textScaler;
 }
