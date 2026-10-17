@@ -91,6 +91,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     if (!_isLogin && (value ?? '').length < 8) {
       return 'Le mot de passe doit contenir au moins 8 caractères.';
     }
+    if (!_isLogin && (value ?? '').length > 72) {
+      return 'Le mot de passe est trop long.';
+    }
     if (value == null || value.isEmpty) {
       return 'Veuillez saisir votre mot de passe.';
     }

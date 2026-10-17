@@ -175,6 +175,13 @@ void main() {
       'Le mot de passe doit contenir au moins 8 caractères.',
     ),
     (
+      'mot de passe trop long',
+      'marie@exemple.fr',
+      'A' * 73,
+      true,
+      'Le mot de passe est trop long.',
+    ),
+    (
       'conditions refusées',
       'marie@exemple.fr',
       'Password123!',
