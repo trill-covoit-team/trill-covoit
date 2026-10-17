@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:provider/provider.dart';
 import 'package:trill_covoit/core/theme/tokens.dart';
 import 'package:trill_covoit/features/auth/providers/auth_provider.dart';
@@ -35,6 +36,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   bool _showTermsError = false;
   String? _emailError;
   String? _bannerError;
+  late final TapGestureRecognizer _termsRecognizer;
+  late final TapGestureRecognizer _privacyRecognizer;
 
   @override
   void initState() {
@@ -42,12 +45,18 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     _isLogin = widget.initialLogin;
     _emailController = TextEditingController(text: widget.initialEmail);
     _confirmationMessage = widget.confirmationMessage;
+    _termsRecognizer = TapGestureRecognizer()
+      ..onTap = () => _showLegal(privacy: false);
+    _privacyRecognizer = TapGestureRecognizer()
+      ..onTap = () => _showLegal(privacy: true);
   }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _termsRecognizer.dispose();
+    _privacyRecognizer.dispose();
     super.dispose();
   }
 
@@ -351,47 +360,34 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                     ),
                     const SizedBox(width: AppSpace.s4),
                     Expanded(
-                      child: Text(
-                        "J'accepte les conditions d'utilisation et la politique de confidentialité.",
+                      child: RichText(
                         key: const ValueKey('terms-text'),
-                        style: theme.textTheme.bodyLarge,
+                        textScaler: MediaQuery.textScalerOf(context),
+                        text: TextSpan(
+                          style: theme.textTheme.bodyLarge,
+                          children: [
+                            const TextSpan(text: "J'accepte les "),
+                            TextSpan(
+                              text: "conditions d'utilisation",
+                              style: TextStyle(
+                                color: theme.colorScheme.primary,
+                                decoration: TextDecoration.underline,
+                              ),
+                              recognizer: isLoading ? null : _termsRecognizer,
+                            ),
+                            const TextSpan(text: ' et la '),
+                            TextSpan(
+                              text: 'politique de confidentialité',
+                              style: TextStyle(
+                                color: theme.colorScheme.primary,
+                                decoration: TextDecoration.underline,
+                              ),
+                              recognizer: isLoading ? null : _privacyRecognizer,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: AppSpace.s8),
-                Wrap(
-                  spacing: AppSpace.s8,
-                  runSpacing: AppSpace.s8,
-                  children: [
-                    for (final privacy in [false, true])
-                      TextButton(
-                        key: ValueKey(privacy ? 'privacy-link' : 'terms-link'),
-                        onPressed: isLoading
-                            ? null
-                            : () => _showLegal(privacy: privacy),
-                        style: ButtonStyle(
-                          minimumSize: const WidgetStatePropertyAll(
-                            Size(kMinTouch, kMinTouch),
-                          ),
-                          padding: const WidgetStatePropertyAll(
-                            EdgeInsets.symmetric(
-                              horizontal: AppSpace.s12,
-                              vertical: AppSpace.s12,
-                            ),
-                          ),
-                          side: WidgetStateProperty.resolveWith(
-                            (states) => states.contains(WidgetState.focused)
-                                ? BorderSide(color: theme.colorScheme.primary)
-                                : BorderSide.none,
-                          ),
-                        ),
-                        child: Text(
-                          privacy
-                              ? LegalTexts.privacyTitle
-                              : LegalTexts.termsTitle,
-                        ),
-                      ),
                   ],
                 ),
                 if (_showTermsError)
