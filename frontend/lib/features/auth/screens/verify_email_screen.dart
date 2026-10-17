@@ -1,50 +1,212 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:trill_covoit/core/theme/app_theme.dart';
+import 'package:trill_covoit/core/theme/tokens.dart';
 import 'package:trill_covoit/features/auth/providers/auth_provider.dart';
 import 'package:trill_covoit/features/auth/screens/login_register_screen.dart';
+import 'package:trill_covoit/features/auth/widgets/auth_error_messages.dart';
 import 'package:trill_covoit/features/auth/widgets/auth_form_layout.dart';
 import 'package:trill_covoit/features/auth/widgets/auth_message.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
-  const VerifyEmailScreen({super.key, required this.email});
+  const VerifyEmailScreen({super.key, required this.email, this.bannerMessage});
 
   final String email;
+  final String? bannerMessage;
 
   @override
   State<VerifyEmailScreen> createState() => _VerifyEmailScreenState();
 }
 
-class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _codeController = TextEditingController();
+class _VerifyEmailScreenState extends State<VerifyEmailScreen>
+    with SingleTickerProviderStateMixin {
+  final _controllers = List.generate(6, (_) => TextEditingController());
+  final _focusNodes = List.generate(6, (_) => FocusNode());
+  late final AnimationController _shake;
+  bool _verified = false;
+  bool _submitting = false;
+  bool _invalidCode = false;
+  bool _showInitialBanner = true;
+  String? _error;
+
+  String get _code => _controllers.map((controller) => controller.text).join();
+
+  @override
+  void initState() {
+    super.initState();
+    _shake = AnimationController(vsync: this, duration: AppMotion.fast);
+    for (var i = 0; i < _focusNodes.length; i++) {
+      _focusNodes[i].addListener(() {
+        if (_focusNodes[i].hasFocus) {
+          _controllers[i].selection = TextSelection(
+            baseOffset: 0,
+            extentOffset: _controllers[i].text.length,
+          );
+        }
+      });
+    }
+  }
 
   @override
   void dispose() {
-    _codeController.dispose();
+    _shake.dispose();
+    for (final controller in _controllers) {
+      controller.dispose();
+    }
+    for (final node in _focusNodes) {
+      node.dispose();
+    }
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  void _openAuth() {
     final auth = context.read<AuthProvider>();
-    if (auth.isLoading || !_formKey.currentState!.validate()) return;
-    FocusScope.of(context).unfocus();
-    final success = await auth.verifyEmail(
-      email: widget.email,
-      code: _codeController.text,
-    );
-    if (!mounted || !success) return;
-
-    final confirmation = auth.successMessage ?? 'Email validé avec succès.';
-    auth.setPendingVerificationEmail(null);
+    if (_submitting || auth.isLoading) return;
+    if (_verified) auth.setPendingVerificationEmail(null);
     auth.clearMessages();
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (_) => LoginRegisterScreen(
           initialLogin: true,
           initialEmail: widget.email,
-          confirmationMessage: confirmation,
+          confirmationMessage: _verified ? 'Adresse email validée' : null,
+        ),
+      ),
+    );
+  }
+
+  void _changed(int index, String value) {
+    if (_submitting || _verified) return;
+    setState(() {
+      _error = null;
+      _invalidCode = false;
+      _showInitialBanner = false;
+    });
+    if (value.length > 1) {
+      // Un code collé ou proposé par le système remplit les cases en une fois.
+      final start = value.length >= 6 ? 0 : index;
+      final digits = value.substring(0, math.min(value.length, 6 - start));
+      for (var i = start; i < 6; i++) {
+        _controllers[i].text = i - start < digits.length
+            ? digits[i - start]
+            : '';
+      }
+      final next = math.min(start + digits.length, 5);
+      _focusNodes[next].requestFocus();
+    } else if (value.isNotEmpty && index < 5) {
+      _focusNodes[index + 1].requestFocus();
+    } else if (value.isEmpty && index > 0) {
+      _focusNodes[index - 1].requestFocus();
+    }
+    if (_controllers.every((controller) => controller.text.length == 1)) {
+      _submit();
+    }
+  }
+
+  Future<void> _submit() async {
+    final auth = context.read<AuthProvider>();
+    if (_verified || _submitting || auth.isLoading) return;
+    if (!RegExp(r'^\d{6}$').hasMatch(_code)) {
+      setState(() => _error = 'Veuillez saisir les 6 chiffres du code.');
+      return;
+    }
+    setState(() {
+      _submitting = true;
+      _error = null;
+      _invalidCode = false;
+      _showInitialBanner = false;
+    });
+    FocusScope.of(context).unfocus();
+    final success = await auth.verifyEmail(email: widget.email, code: _code);
+    if (!mounted) return;
+    final message = auth.errorMessage ?? AuthErrorMessages.server;
+    setState(() {
+      _submitting = false;
+      _verified = success;
+      if (!success) {
+        _invalidCode = AuthErrorMessages.isInvalidCode(message);
+        _error = _invalidCode
+            ? 'Code invalide. Réessayez.'
+            : AuthErrorMessages.isNetwork(message)
+            ? AuthErrorMessages.network
+            : AuthErrorMessages.server;
+      }
+    });
+    if (_invalidCode) {
+      if (!MediaQuery.disableAnimationsOf(context)) _shake.forward(from: 0);
+      _focusNodes.first.requestFocus();
+    }
+  }
+
+  Widget _digit(int index, ThemeData theme) {
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+      borderSide: BorderSide(
+        color: _invalidCode
+            ? theme.colorScheme.error
+            : theme.colorScheme.outline,
+      ),
+    );
+    return SizedBox(
+      width: kMinTouch,
+      child: Focus(
+        onKeyEvent: (_, event) {
+          if (event is KeyDownEvent &&
+              event.logicalKey == LogicalKeyboardKey.backspace &&
+              _controllers[index].text.isEmpty &&
+              index > 0) {
+            _focusNodes[index - 1].requestFocus();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: TextField(
+          key: ValueKey(
+            index == 0 ? 'verification-code' : 'verification-digit-$index',
+          ),
+          controller: _controllers[index],
+          focusNode: _focusNodes[index],
+          enabled: !_submitting,
+          keyboardType: TextInputType.number,
+          textInputAction: index == 5
+              ? TextInputAction.done
+              : TextInputAction.next,
+          autofillHints: const [AutofillHints.oneTimeCode],
+          autocorrect: false,
+          enableSuggestions: false,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(6),
+          ],
+          textAlign: TextAlign.center,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: _invalidCode
+                ? theme.colorScheme.error
+                : theme.colorScheme.onSurface,
+          ),
+          decoration: InputDecoration(
+            // Le libellé sémantique reste distinct pour chacune des six cases.
+            hintText: '–',
+            border: border,
+            enabledBorder: border,
+            disabledBorder: border,
+            focusedBorder: border.copyWith(
+              borderSide: BorderSide(
+                color: _invalidCode
+                    ? theme.colorScheme.error
+                    : theme.colorScheme.primary,
+              ),
+            ),
+            constraints: const BoxConstraints(minHeight: kMinTouch),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: AppSpace.s4,
+              vertical: AppSpace.s12,
+            ),
+          ),
+          onChanged: (value) => _changed(index, value),
+          onSubmitted: (_) => _submit(),
         ),
       ),
     );
@@ -52,79 +214,115 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
-
-    return AuthFormLayout(
-      title: "Validation de l'email",
-      isBusy: auth.isLoading,
-      child: Form(
-        key: _formKey,
+    final theme = Theme.of(context);
+    final busy = _submitting || context.watch<AuthProvider>().isLoading;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && !busy) _openAuth();
+      },
+      child: AuthFormLayout(
+        title: 'Vérifiez votre email',
+        showTitle: false,
+        isBusy: busy,
+        onBack: _openAuth,
+        footer: FilledButton(
+          onPressed: busy
+              ? null
+              : _verified
+              ? _openAuth
+              : _submit,
+          child: busy
+              ? const SizedBox(
+                  width: AppSpace.s24,
+                  height: AppSpace.s24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: AppSpace.s4,
+                    semanticsLabel: 'Validation en cours',
+                  ),
+                )
+              : Text(_verified ? 'Se connecter' : 'Valider mon email'),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(Icons.mark_email_read_outlined, size: 48),
-            const SizedBox(height: 24),
-            Text(
-              'Vérifiez votre email',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 16),
-            const Text('Saisissez le code à 6 chiffres envoyé à :'),
-            const SizedBox(height: 8),
-            Text(widget.email, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 24),
-            if (auth.successMessage != null)
-              AuthMessage(message: auth.successMessage!),
-            if (auth.errorMessage != null)
-              AuthMessage(message: auth.errorMessage!, isError: true),
-            TextFormField(
-              key: const ValueKey('verification-code'),
-              controller: _codeController,
-              enabled: !auth.isLoading,
-              keyboardType: TextInputType.number,
-              textInputAction: TextInputAction.done,
-              autofillHints: const [AutofillHints.oneTimeCode],
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              maxLength: 6,
-              autocorrect: false,
-              enableSuggestions: false,
-              decoration: const InputDecoration(
-                labelText: 'Code à 6 chiffres',
-                hintText: '000000',
-                helperText: 'Vous pouvez coller le code reçu par email.',
-                helperMaxLines: 2,
-                errorMaxLines: 2,
+            Semantics(
+              header: true,
+              child: Text(
+                'Vérifiez votre email',
+                style: theme.textTheme.headlineMedium,
               ),
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(letterSpacing: 6),
-              validator: (value) {
-                if (!RegExp(r'^\d{6}$').hasMatch(value ?? '')) {
-                  return 'Veuillez saisir les 6 chiffres du code.';
-                }
-                return null;
-              },
-              onFieldSubmitted: (_) => _submit(),
             ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: auth.isLoading ? null : _submit,
-              child: auth.isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        semanticsLabel: 'Validation en cours',
+            const SizedBox(height: AppSpace.s16),
+            Text('Le code a été envoyé à :', style: theme.textTheme.bodyLarge),
+            const SizedBox(height: AppSpace.s8),
+            Text(widget.email, style: theme.textTheme.titleMedium),
+            const SizedBox(height: AppSpace.s24),
+            if (_showInitialBanner && widget.bannerMessage != null)
+              AuthMessage(message: widget.bannerMessage!),
+            if (_verified) ...[
+              Semantics(
+                liveRegion: true,
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: 1),
+                  duration: MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero
+                      : AppMotion.fast,
+                  builder: (_, value, child) =>
+                      Transform.scale(scale: value, child: child),
+                  child: Icon(
+                    Icons.check_circle,
+                    size: AppSpace.s48,
+                    color: AppColors.success,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpace.s16),
+              const AuthMessage(message: 'Adresse email validée'),
+            ] else ...[
+              AutofillGroup(
+                child: AnimatedBuilder(
+                  animation: _shake,
+                  builder: (_, child) => Transform.translate(
+                    offset: Offset(
+                      math.sin(_shake.value * math.pi * 6) *
+                          AppSpace.s8 *
+                          (1 - _shake.value),
+                      0,
+                    ),
+                    child: child,
+                  ),
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: AppSpace.s8,
+                    runSpacing: AppSpace.s12,
+                    children: List.generate(
+                      6,
+                      (index) => Semantics(
+                        label: 'Chiffre ${index + 1} sur 6',
+                        child: _digit(index, theme),
                       ),
-                    )
-                  : const Text('Valider mon email'),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Après validation, connectez-vous avec votre mot de passe.',
-              style: TextStyle(color: AppTheme.muted),
-            ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpace.s12),
+              Text(
+                'Vous pouvez coller le code reçu par email.',
+                style: theme.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: AppSpace.s16),
+              if (_error != null) AuthMessage(message: _error!, isError: true),
+              const TextButton(
+                onPressed: null,
+                child: Text('Renvoyer le code'),
+              ),
+              Text(
+                'Le renvoi du code est indisponible pour le moment.',
+                style: theme.textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+            ],
           ],
         ),
       ),

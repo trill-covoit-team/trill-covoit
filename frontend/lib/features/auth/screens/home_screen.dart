@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:trill_covoit/core/theme/tokens.dart';
 import 'package:trill_covoit/features/auth/providers/auth_provider.dart';
 import 'package:trill_covoit/features/auth/screens/landing_screen.dart';
 import 'package:trill_covoit/features/auth/widgets/auth_form_layout.dart';
@@ -13,27 +14,20 @@ class HomeScreen extends StatelessWidget {
     if (session == null) return const LandingScreen();
 
     return AuthFormLayout(
-      title: 'TRILL Covoit’',
+      title: 'Tableau de bord',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.check_circle_outline, size: 48),
-          const SizedBox(height: 24),
-          Text(
-            'Bienvenue !',
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          const SizedBox(height: 12),
-          const Text('Vous êtes connecté avec :'),
-          const SizedBox(height: 8),
+          Text('Bonjour,', style: Theme.of(context).textTheme.headlineMedium),
+          const SizedBox(height: AppSpace.s8),
           Text(
             session.user.email,
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: AppSpace.s32),
           OutlinedButton(
             onPressed: () => context.read<AuthProvider>().logout(),
-            child: const Text('Déconnexion'),
+            child: const Text('Se déconnecter'),
           ),
         ],
       ),

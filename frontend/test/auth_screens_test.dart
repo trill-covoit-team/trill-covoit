@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:trill_covoit/core/theme/app_theme.dart';
 import 'package:trill_covoit/features/auth/providers/auth_provider.dart';
 import 'package:trill_covoit/features/auth/screens/home_screen.dart';
@@ -46,7 +49,7 @@ Future<AuthProvider> _pumpApp(
       value: auth,
       child: screen == null
           ? const MainApp()
-          : MaterialApp(theme: AppTheme.lightTheme, home: screen),
+          : MaterialApp(theme: AppTheme.light, home: screen),
     ),
   );
   return auth;
@@ -59,10 +62,7 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
 }
 
 Future<void> _openForm(WidgetTester tester, {bool isLogin = false}) async {
-  await _tap(
-    tester,
-    find.text(isLogin ? "J'ai déjà un compte" : "Continuer avec l'email"),
-  );
+  await _tap(tester, find.text(isLogin ? "J'ai déjà un compte" : 'Commencer'));
 }
 
 Future<void> _fillCredentials(
@@ -76,17 +76,80 @@ Future<void> _fillCredentials(
 }
 
 void main() {
+  GoogleFonts.config.allowRuntimeFetching = false;
   testWidgets('Les entrées de l’accueil ouvrent le bon onglet', (tester) async {
     await _pumpApp(tester, (_) async => _message('Non utilisé'));
     await _openForm(tester);
-    expect(find.text('Créez votre compte'), findsOneWidget);
-    expect(find.byType(CheckboxListTile), findsOneWidget);
+    expect(find.text('Bienvenue'), findsOneWidget);
+    expect(find.byType(Checkbox), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
     await _openForm(tester, isLogin: true);
-    expect(find.text('Bon retour'), findsOneWidget);
-    expect(find.byType(CheckboxListTile), findsNothing);
+    expect(find.text('Bienvenue'), findsOneWidget);
+    expect(find.byType(Checkbox), findsNothing);
   });
+
+  testWidgets('Les actions restent en bas après défilement de l’accueil', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await _pumpApp(tester, (_) async => _message('Non utilisé'));
+    final button = find.widgetWithText(OutlinedButton, "J'ai déjà un compte");
+    final before = tester.getRect(button);
+    expect(before.bottom, lessThanOrEqualTo(640));
+    await tester.drag(
+      find.byType(SingleChildScrollView),
+      const Offset(0, -300),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.getRect(button), before);
+    expect(find.text("Jusqu'à 70 % moins cher qu'en solo"), findsOneWidget);
+    expect(find.text('Des voisins qui font le même trajet'), findsOneWidget);
+    expect(find.text('Moins de CO2 chaque jour'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final isLogin in [false, true]) {
+    testWidgets('Le bouton auth reste au-dessus du clavier ($isLogin)', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(320, 640);
+      tester.view.devicePixelRatio = 1;
+      tester.view.viewInsets = const FakeViewPadding(bottom: 280);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetViewInsets);
+      await _pumpApp(
+        tester,
+        (_) async => _message('Non utilisé'),
+        screen: LoginRegisterScreen(initialLogin: isLogin),
+      );
+      final button = find.byType(FilledButton);
+      expect(tester.getRect(button).bottom, lessThanOrEqualTo(360));
+      expect(tester.getRect(button).top, greaterThanOrEqualTo(0));
+      final email = tester.widget<TextField>(
+        find.descendant(of: _emailField, matching: find.byType(TextField)),
+      );
+      final password = tester.widget<TextField>(
+        find.descendant(of: _passwordField, matching: find.byType(TextField)),
+      );
+      expect(
+        email.decoration!.floatingLabelBehavior,
+        FloatingLabelBehavior.always,
+      );
+      expect(
+        password.decoration!.floatingLabelBehavior,
+        FloatingLabelBehavior.always,
+      );
+      expect(email.keyboardType, TextInputType.emailAddress);
+      expect(email.textInputAction, TextInputAction.next);
+      expect(password.textInputAction, TextInputAction.done);
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   final invalidRegistrations = [
     ('email vide', '', 'Password123!', true, 'Veuillez saisir votre email.'),
@@ -95,14 +158,14 @@ void main() {
       'invalide',
       'Password123!',
       true,
-      'Veuillez saisir un email valide.',
+      'Adresse email invalide.',
     ),
     (
       'mot de passe vide',
       'marie@exemple.fr',
       '',
       true,
-      'Veuillez saisir votre mot de passe.',
+      'Le mot de passe doit contenir au moins 8 caractères.',
     ),
     (
       'sept caractères',
@@ -116,7 +179,7 @@ void main() {
       'marie@exemple.fr',
       'Password123!',
       false,
-      "Veuillez accepter les conditions d'utilisation.",
+      'Vous devez accepter les conditions pour continuer.',
     ),
   ];
   for (final (name, email, password, terms, error) in invalidRegistrations) {
@@ -128,8 +191,8 @@ void main() {
       });
       await _openForm(tester);
       await _fillCredentials(tester, email: email, password: password);
-      if (terms) await _tap(tester, find.byType(CheckboxListTile));
-      await _tap(tester, find.text("S'inscrire"));
+      if (terms) await _tap(tester, find.byType(Checkbox));
+      await _tap(tester, find.text('Créer mon compte'));
       expect(find.text(error), findsOneWidget);
       expect(count, 0);
     });
@@ -154,8 +217,8 @@ void main() {
       email: '  marie@exemple.fr  ',
       password: '12345678',
     );
-    await _tap(tester, find.byType(CheckboxListTile));
-    await _tap(tester, find.text("S'inscrire"));
+    await _tap(tester, find.byType(Checkbox));
+    await _tap(tester, find.text('Créer mon compte'));
     expect(find.byType(VerifyEmailScreen), findsOneWidget);
     expect(find.text('marie@exemple.fr'), findsOneWidget);
     expect(jsonDecode(requests.first.body), {
@@ -165,13 +228,16 @@ void main() {
     });
 
     await tester.enterText(_codeField, '012345');
-    await _tap(tester, find.text('Valider mon email'));
+    await tester.pumpAndSettle();
+    expect(find.text('Adresse email validée'), findsOneWidget);
+    expect(find.byType(VerifyEmailScreen), findsOneWidget);
+    await _tap(tester, find.text('Se connecter'));
     expect(jsonDecode(requests[1].body), {
       'email': 'marie@exemple.fr',
       'code': '012345',
     });
-    expect(find.text('Bon retour'), findsOneWidget);
-    expect(find.text('Email validé avec succès.'), findsOneWidget);
+    expect(find.text('Bienvenue'), findsOneWidget);
+    expect(find.text('Adresse email validée'), findsOneWidget);
     expect(auth.pendingVerificationEmail, isNull);
     expect(auth.isAuthenticated, isFalse);
     expect(
@@ -197,7 +263,7 @@ void main() {
       Navigator.of(tester.element(find.byType(HomeScreen))).canPop(),
       isFalse,
     );
-    await _tap(tester, find.text('Déconnexion'));
+    await _tap(tester, find.text('Se déconnecter'));
     expect(auth.isAuthenticated, isFalse);
     expect(find.byType(HomeScreen), findsNothing);
     expect(find.byType(LandingScreen), findsOneWidget);
@@ -213,14 +279,14 @@ void main() {
   ) async {
     final auth = await _pumpApp(
       tester,
-      (_) async => _message('Cet email est déjà utilisé.', 409),
+      (_) async => _message('Cette adresse email est déjà utilisée.', 409),
     );
     await _openForm(tester);
     await _fillCredentials(tester);
-    await _tap(tester, find.byType(CheckboxListTile));
-    await _tap(tester, find.text("S'inscrire"));
-    expect(find.text('Cet email est déjà utilisé.'), findsOneWidget);
-    await _tap(tester, find.widgetWithText(OutlinedButton, 'Connexion'));
+    await _tap(tester, find.byType(Checkbox));
+    await _tap(tester, find.text('Créer mon compte'));
+    expect(find.text('Cette adresse email est déjà utilisée.'), findsOneWidget);
+    await _tap(tester, find.widgetWithText(TextButton, 'Connexion'));
     expect(auth.errorMessage, isNull);
     expect(
       tester.widget<TextFormField>(_passwordField).controller!.text,
@@ -230,11 +296,8 @@ void main() {
       tester.widget<TextFormField>(_emailField).controller!.text,
       'marie@exemple.fr',
     );
-    await _tap(tester, find.widgetWithText(OutlinedButton, 'Inscription'));
-    expect(
-      tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
-      isFalse,
-    );
+    await _tap(tester, find.widgetWithText(TextButton, 'Inscription'));
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
   });
 
   testWidgets('Le mot de passe peut être affiché et masqué', (tester) async {
@@ -252,6 +315,66 @@ void main() {
     expect(tester.widget<EditableText>(input).obscureText, isTrue);
   });
 
+  testWidgets(
+    'Les textes légaux sont consultables sans accepter les conditions',
+    (tester) async {
+      await _pumpApp(tester, (_) async => _message('Non utilisé'));
+      await _openForm(tester);
+      for (final (link, title, content) in [
+        (
+          "conditions d'utilisation",
+          "Conditions d'utilisation",
+          'Version de démonstration',
+        ),
+        (
+          'politique de confidentialité',
+          'Politique de confidentialité',
+          'Information sur le traitement des données personnelles',
+        ),
+      ]) {
+        final richText = find.byKey(const ValueKey('terms-text'));
+        await tester.ensureVisible(richText);
+        final paragraph = tester.renderObject<RenderParagraph>(richText);
+        final sentence = paragraph.text.toPlainText();
+        final start = sentence.indexOf(link);
+        final boxes = paragraph.getBoxesForSelection(
+          TextSelection(baseOffset: start, extentOffset: start + link.length),
+        );
+        await tester.tapAt(
+          paragraph.localToGlobal(boxes.first.toRect().center),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text(title), findsOneWidget);
+        expect(find.textContaining(content), findsOneWidget);
+        await _tap(tester, find.byTooltip('Fermer'));
+        expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
+      }
+    },
+  );
+
+  testWidgets('La robustesse reste indicative et le titre reste unique', (
+    tester,
+  ) async {
+    await _pumpApp(tester, (_) async => _message('Non utilisé'));
+    await _openForm(tester);
+    expect(find.text('Bienvenue'), findsOneWidget);
+    expect(tester.widget<AppBar>(find.byType(AppBar)).title, isNull);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+    expect(find.textContaining('Robustesse :'), findsNothing);
+    await tester.enterText(_passwordField, '1234567');
+    await tester.pump();
+    expect(find.text('Robustesse : Faible'), findsOneWidget);
+    await tester.enterText(_passwordField, '12345678');
+    await tester.pump();
+    expect(find.text('Robustesse : Moyen'), findsOneWidget);
+    await tester.enterText(_passwordField, 'MotDePasse1!');
+    await tester.pump();
+    expect(find.text('Robustesse : Robuste'), findsOneWidget);
+    await tester.enterText(_passwordField, '');
+    await tester.pump();
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+  });
+
   for (final isLogin in [false, true]) {
     testWidgets(
       'La ${isLogin ? 'connexion' : 'inscription'} permet une nouvelle tentative',
@@ -260,17 +383,29 @@ void main() {
         await _pumpApp(tester, (_) async {
           count++;
           return count == 1
-              ? _message('Demande refusée.', isLogin ? 401 : 409)
+              ? _message(
+                  isLogin
+                      ? "L'adresse email ou le mot de passe est incorrect."
+                      : 'Cette adresse email est déjà utilisée.',
+                  isLogin ? 401 : 409,
+                )
               : isLogin
               ? _session()
               : _message('Compte créé avec succès.', 201);
         });
         await _openForm(tester, isLogin: isLogin);
         await _fillCredentials(tester);
-        if (!isLogin) await _tap(tester, find.byType(CheckboxListTile));
-        final label = isLogin ? 'Se connecter' : "S'inscrire";
+        if (!isLogin) await _tap(tester, find.byType(Checkbox));
+        final label = isLogin ? 'Se connecter' : 'Créer mon compte';
         await _tap(tester, find.text(label));
-        expect(find.text('Demande refusée.'), findsOneWidget);
+        expect(
+          find.text(
+            isLogin
+                ? 'Identifiants invalides'
+                : 'Cette adresse email est déjà utilisée.',
+          ),
+          findsOneWidget,
+        );
         await _tap(tester, find.text(label));
         expect(count, 2);
         expect(
@@ -287,13 +422,13 @@ void main() {
     final requests = <http.Request>[];
     await _pumpApp(tester, (request) async {
       requests.add(request);
-      return _message('Identifiants incorrects.', 401);
+      return _message("L'adresse email ou le mot de passe est incorrect.", 401);
     });
     await _openForm(tester, isLogin: true);
     await _fillCredentials(tester, password: ' a ');
     await _tap(tester, find.text('Se connecter'));
     expect(jsonDecode(requests.single.body)['password'], ' a ');
-    expect(find.text('Identifiants incorrects.'), findsOneWidget);
+    expect(find.text('Identifiants invalides'), findsOneWidget);
   });
 
   testWidgets('La connexion refuse un mot de passe vide sans appel API', (
@@ -311,7 +446,7 @@ void main() {
     expect(count, 0);
   });
 
-  testWidgets('Un email non validé propose le bon écran de validation', (
+  testWidgets('Un email non validé ouvre automatiquement la validation', (
     tester,
   ) async {
     await _pumpApp(
@@ -321,8 +456,10 @@ void main() {
     await _openForm(tester, isLogin: true);
     await _fillCredentials(tester, email: 'attente@exemple.fr');
     await _tap(tester, find.text('Se connecter'));
-    expect(find.text('Veuillez valider votre email.'), findsOneWidget);
-    await _tap(tester, find.text('Valider mon email'));
+    expect(
+      find.text("Validez votre adresse email pour accéder à l'application."),
+      findsOneWidget,
+    );
     expect(
       tester.widget<VerifyEmailScreen>(find.byType(VerifyEmailScreen)).email,
       'attente@exemple.fr',
@@ -338,12 +475,15 @@ void main() {
       count++;
       return count == 1
           ? _message('Veuillez valider votre email.', 403)
-          : _message('Identifiants incorrects.', 401);
+          : _message("L'adresse email ou le mot de passe est incorrect.", 401);
     });
     await _openForm(tester, isLogin: true);
     await _fillCredentials(tester);
     await _tap(tester, find.text('Se connecter'));
-    expect(find.text('Valider mon email'), findsOneWidget);
+    expect(find.byType(VerifyEmailScreen), findsOneWidget);
+    await _tap(tester, find.byTooltip('Retour'));
+    await tester.pumpAndSettle();
+    await _fillCredentials(tester);
     await _tap(tester, find.text('Se connecter'));
     expect(auth.pendingVerificationEmail, isNull);
     expect(find.text('Valider mon email'), findsNothing);
@@ -360,6 +500,8 @@ void main() {
     await _openForm(tester, isLogin: true);
     await _fillCredentials(tester);
     await _tap(tester, find.text('Se connecter'));
+    await _tap(tester, find.byTooltip('Retour'));
+    await tester.pumpAndSettle();
     await tester.enterText(_emailField, 'autre@exemple.fr');
     await tester.pumpAndSettle();
     expect(auth.pendingVerificationEmail, isNull);
@@ -393,8 +535,130 @@ void main() {
       screen: const VerifyEmailScreen(email: 'marie@exemple.fr'),
     );
     await tester.enterText(_codeField, 'ab01 23-4567');
-    expect(tester.widget<TextFormField>(_codeField).controller!.text, '012345');
+    expect(
+      tester
+          .widgetList<TextField>(find.byType(TextField))
+          .map((field) => field.controller!.text)
+          .join(),
+      '012345',
+    );
+    await tester.pumpAndSettle();
   });
+
+  testWidgets('Six chiffres avancent le focus et déclenchent un seul envoi', (
+    tester,
+  ) async {
+    var count = 0;
+    final auth = await _pumpApp(tester, (_) async {
+      count++;
+      return _message('Le code de validation est invalide ou expiré.', 400);
+    }, screen: const VerifyEmailScreen(email: 'marie@exemple.fr'));
+    final fields = tester
+        .widgetList<TextField>(find.byType(TextField))
+        .toList();
+    expect(fields, hasLength(6));
+    for (var i = 0; i < 6; i++) {
+      final field = i == 0
+          ? _codeField
+          : find.byKey(ValueKey('verification-digit-$i'));
+      final box = tester.getSize(field);
+      expect(box.width, greaterThanOrEqualTo(48));
+      expect(box.height, greaterThanOrEqualTo(48));
+      expect(fields[i].autofillHints, contains(AutofillHints.oneTimeCode));
+      await tester.enterText(field, '$i');
+      await tester.pump();
+      if (i < 5) expect(fields[i + 1].focusNode!.hasFocus, isTrue);
+      expect(count, i < 5 ? 0 : 1);
+    }
+    await tester.pumpAndSettle();
+    expect(auth.isAuthenticated, isFalse);
+    expect(find.text('Code invalide. Réessayez.'), findsOneWidget);
+    for (final field in tester.widgetList<TextField>(find.byType(TextField))) {
+      expect(
+        (field.decoration!.enabledBorder! as OutlineInputBorder)
+            .borderSide
+            .color,
+        Theme.of(tester.element(_codeField)).colorScheme.error,
+      );
+    }
+  });
+
+  testWidgets('Aucun faux renvoi ni appel supplémentaire sans API de renvoi', (
+    tester,
+  ) async {
+    var count = 0;
+    await _pumpApp(tester, (_) async {
+      count++;
+      return _message('Non utilisé');
+    }, screen: const VerifyEmailScreen(email: 'marie@exemple.fr'));
+    final resend = find.widgetWithText(TextButton, 'Renvoyer le code');
+    expect(tester.widget<TextButton>(resend).onPressed, isNull);
+    await tester.pump(const Duration(seconds: 31));
+    expect(tester.widget<TextButton>(resend).onPressed, isNull);
+    expect(find.text('Un nouveau code a été envoyé.'), findsNothing);
+    expect(count, 0);
+  });
+
+  for (final verification in [false, true]) {
+    for (final network in [false, true]) {
+      testWidgets('Erreur ${network ? "réseau" : "serveur"} ($verification)', (
+        tester,
+      ) async {
+        var count = 0;
+        await _pumpApp(
+          tester,
+          (_) async {
+            count++;
+            if (network) throw const SocketException('Hors ligne');
+            return _message('Détail technique confidentiel', 500);
+          },
+          screen: verification
+              ? const VerifyEmailScreen(email: 'marie@exemple.fr')
+              : const LoginRegisterScreen(initialLogin: true),
+        );
+        if (verification) {
+          await tester.enterText(_codeField, '012345');
+          await tester.pumpAndSettle();
+        } else {
+          await _fillCredentials(tester);
+          await _tap(tester, find.text('Se connecter'));
+        }
+        expect(
+          find.text(
+            network
+                ? 'Connexion impossible. Vérifiez votre réseau.'
+                : 'Une erreur est survenue. Réessayez plus tard.',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Détail technique confidentiel'), findsNothing);
+        await _tap(
+          tester,
+          find.text(verification ? 'Valider mon email' : 'Se connecter'),
+        );
+        expect(count, 2);
+      });
+    }
+  }
+
+  testWidgets(
+    'Le retour système de vérification ouvre Auth avec le bon email',
+    (tester) async {
+      await _pumpApp(
+        tester,
+        (_) async => _message('Non utilisé'),
+        screen: const VerifyEmailScreen(email: 'retour@exemple.fr'),
+      );
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(LoginRegisterScreen), findsOneWidget);
+      expect(
+        tester.widget<TextFormField>(_emailField).controller!.text,
+        'retour@exemple.fr',
+      );
+      expect(find.byType(Checkbox), findsNothing);
+    },
+  );
 
   testWidgets('Un code refusé permet une nouvelle tentative', (tester) async {
     final codes = <String>[];
@@ -405,14 +669,15 @@ void main() {
           : _message('Email validé avec succès.');
     }, screen: const VerifyEmailScreen(email: 'marie@exemple.fr'));
     await tester.enterText(_codeField, '000000');
-    await _tap(tester, find.text('Valider mon email'));
-    expect(find.text('Code invalide ou expiré.'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.text('Code invalide. Réessayez.'), findsOneWidget);
     expect(find.byType(VerifyEmailScreen), findsOneWidget);
     await tester.enterText(_codeField, '012345');
-    await _tap(tester, find.text('Valider mon email'));
+    await tester.pumpAndSettle();
     expect(codes, ['000000', '012345']);
-    expect(find.text('Email validé avec succès.'), findsOneWidget);
-    expect(find.text('Bon retour'), findsOneWidget);
+    expect(find.text('Adresse email validée'), findsOneWidget);
+    await _tap(tester, find.text('Se connecter'));
+    expect(find.text('Bienvenue'), findsOneWidget);
   });
 
   for (final isLogin in [false, true]) {
@@ -427,10 +692,10 @@ void main() {
         });
         await _openForm(tester, isLogin: isLogin);
         await _fillCredentials(tester);
-        if (!isLogin) await _tap(tester, find.byType(CheckboxListTile));
+        if (!isLogin) await _tap(tester, find.byType(Checkbox));
         final submit = find.widgetWithText(
-          ElevatedButton,
-          isLogin ? 'Se connecter' : "S'inscrire",
+          FilledButton,
+          isLogin ? 'Se connecter' : 'Créer mon compte',
         );
         await tester.ensureVisible(submit);
         await tester.tap(submit);
@@ -443,9 +708,9 @@ void main() {
         expect(tester.widget<TextFormField>(_passwordField).enabled, isFalse);
         expect(
           tester
-              .widget<OutlinedButton>(
+              .widget<TextButton>(
                 find.widgetWithText(
-                  OutlinedButton,
+                  TextButton,
                   isLogin ? 'Inscription' : 'Connexion',
                 ),
               )
@@ -484,12 +749,12 @@ void main() {
     await tester.pump();
     expect(count, 1);
     expect(auth.isLoading, isTrue);
-    expect(tester.widget<TextFormField>(_codeField).enabled, isFalse);
+    expect(tester.widget<TextField>(_codeField).enabled, isFalse);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     response.complete(_message('Email validé avec succès.'));
     await tester.pumpAndSettle();
     expect(auth.isAuthenticated, isFalse);
-    expect(find.text('Bon retour'), findsOneWidget);
+    expect(find.text('Adresse email validée'), findsOneWidget);
   });
 
   testWidgets('La porte d’entrée réagit à une session modifiée hors écran', (
@@ -519,7 +784,7 @@ void main() {
       screen: const HomeScreen(),
     );
     expect(find.byType(LandingScreen), findsOneWidget);
-    expect(find.text('Déconnexion'), findsNothing);
+    expect(find.text('Se déconnecter'), findsNothing);
   });
 
   for (final screen in [
@@ -543,7 +808,7 @@ void main() {
         screen: screen,
       );
       final button = find.text(
-        screen is VerifyEmailScreen ? 'Valider mon email' : "S'inscrire",
+        screen is VerifyEmailScreen ? 'Valider mon email' : 'Créer mon compte',
       );
       await _tap(tester, button);
       expect(tester.takeException(), isNull);
