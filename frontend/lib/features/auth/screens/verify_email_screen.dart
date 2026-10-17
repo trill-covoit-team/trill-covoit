@@ -27,6 +27,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
   late final AnimationController _shake;
   bool _verified = false;
   bool _submitting = false;
+  bool _resettingCode = false;
   bool _invalidCode = false;
   bool _showInitialBanner = true;
   String? _error;
@@ -63,7 +64,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
 
   void _openAuth() {
     final auth = context.read<AuthProvider>();
-    if (_submitting || auth.isLoading) return;
+    if (_submitting || _resettingCode || auth.isLoading) return;
     if (_verified) auth.setPendingVerificationEmail(null);
     auth.clearMessages();
     Navigator.of(context).pushReplacement(
@@ -78,7 +79,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
   }
 
   void _changed(int index, String value) {
-    if (_submitting || _verified) return;
+    if (_submitting || _resettingCode || _verified) return;
     setState(() {
       _error = null;
       _invalidCode = false;
@@ -107,7 +108,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
 
   Future<void> _submit() async {
     final auth = context.read<AuthProvider>();
-    if (_verified || _submitting || auth.isLoading) return;
+    if (_verified || _submitting || _resettingCode || auth.isLoading) return;
     if (!RegExp(r'^\d{6}$').hasMatch(_code)) {
       setState(() => _error = 'Veuillez saisir les 6 chiffres du code.');
       return;
@@ -127,6 +128,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
       _verified = success;
       if (!success) {
         _invalidCode = AuthErrorMessages.isInvalidCode(message);
+        _resettingCode = _invalidCode;
         _error = _invalidCode
             ? 'Code invalide. Réessayez.'
             : AuthErrorMessages.isNetwork(message)
@@ -135,8 +137,22 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
       }
     });
     if (_invalidCode) {
-      if (!MediaQuery.disableAnimationsOf(context)) _shake.forward(from: 0);
-      _focusNodes.first.requestFocus();
+      if (!MediaQuery.disableAnimationsOf(context)) {
+        try {
+          await _shake.forward(from: 0).orCancel;
+        } on TickerCanceled {
+          return;
+        }
+      }
+      if (!mounted) return;
+      // Effacer uniquement le code refusé, une fois le retour visuel terminé.
+      for (final controller in _controllers) {
+        controller.clear();
+      }
+      setState(() => _resettingCode = false);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focusNodes.first.requestFocus();
+      });
     }
   }
 
@@ -168,7 +184,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
           ),
           controller: _controllers[index],
           focusNode: _focusNodes[index],
-          enabled: !_submitting,
+          enabled: !_submitting && !_resettingCode,
           keyboardType: TextInputType.number,
           textInputAction: index == 5
               ? TextInputAction.done
@@ -219,7 +235,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && !busy) _openAuth();
+        if (!didPop && !busy && !_resettingCode) _openAuth();
       },
       child: AuthFormLayout(
         title: 'Vérifiez votre email',
@@ -227,7 +243,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
         isBusy: busy,
         onBack: _openAuth,
         footer: FilledButton(
-          onPressed: busy
+          onPressed: busy || _resettingCode
               ? null
               : _verified
               ? _openAuth

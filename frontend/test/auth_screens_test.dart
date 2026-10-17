@@ -581,6 +581,7 @@ void main() {
     expect(auth.isAuthenticated, isFalse);
     expect(find.text('Code invalide. Réessayez.'), findsOneWidget);
     for (final field in tester.widgetList<TextField>(find.byType(TextField))) {
+      expect(field.controller!.text, isEmpty);
       expect(
         (field.decoration!.enabledBorder! as OutlineInputBorder)
             .borderSide
@@ -589,6 +590,101 @@ void main() {
       );
     }
   });
+
+  for (final reducedMotion in [false, true]) {
+    testWidgets(
+      'Le code refusé est effacé après le retour visuel ($reducedMotion)',
+      (tester) async {
+        final response = Completer<http.Response>();
+        final codes = <String>[];
+        await _pumpApp(
+          tester,
+          (request) {
+            codes.add(jsonDecode(request.body)['code'] as String);
+            return codes.length == 1
+                ? response.future
+                : Future.value(_message('Email validé avec succès.'));
+          },
+          screen: MediaQuery(
+            data: MediaQueryData(disableAnimations: reducedMotion),
+            child: const VerifyEmailScreen(email: 'marie@exemple.fr'),
+          ),
+        );
+        await tester.enterText(_codeField, '000000');
+        await tester.pump();
+        response.complete(
+          _message('Le code de validation est invalide ou expiré.', 400),
+        );
+        await tester.pump();
+        final fields = tester
+            .widgetList<TextField>(find.byType(TextField))
+            .toList();
+        final submit = find.byType(FilledButton);
+        expect(find.text('Code invalide. Réessayez.'), findsOneWidget);
+        if (!reducedMotion) {
+          expect(
+            fields.map((field) => field.controller!.text).join(),
+            '000000',
+          );
+          expect(fields.every((field) => field.enabled == false), isTrue);
+          expect(tester.widget<FilledButton>(submit).onPressed, isNull);
+          await tester.pump(const Duration(milliseconds: 199));
+          expect(
+            fields.map((field) => field.controller!.text).join(),
+            '000000',
+          );
+          expect(codes, ['000000']);
+          await tester.pump(const Duration(milliseconds: 1));
+        } else {
+          expect(
+            fields.every((field) => field.controller!.text.isEmpty),
+            isTrue,
+          );
+        }
+        await tester.pumpAndSettle();
+        expect(fields.every((field) => field.controller!.text.isEmpty), isTrue);
+        expect(fields.first.focusNode!.hasFocus, isTrue);
+        expect(tester.widget<TextField>(_codeField).enabled, isTrue);
+        expect(find.text('Code invalide. Réessayez.'), findsOneWidget);
+        for (var i = 0; i < 6; i++) {
+          await tester.enterText(
+            i == 0 ? _codeField : find.byKey(ValueKey('verification-digit-$i')),
+            '$i',
+          );
+          await tester.pump();
+          if (i < 5) {
+            expect(codes, ['000000']);
+            expect(find.text('Code invalide. Réessayez.'), findsNothing);
+          }
+        }
+        await tester.pumpAndSettle();
+        expect(codes, ['000000', '012345']);
+        expect(find.text('Adresse email validée'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets(
+    'Quitter pendant le shake ne provoque pas de rappel après dispose',
+    (tester) async {
+      final response = Completer<http.Response>();
+      await _pumpApp(
+        tester,
+        (_) => response.future,
+        screen: const VerifyEmailScreen(email: 'marie@exemple.fr'),
+      );
+      await tester.enterText(_codeField, '000000');
+      await tester.pump();
+      response.complete(
+        _message('Le code de validation est invalide ou expiré.', 400),
+      );
+      await tester.pump();
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('Aucun faux renvoi ni appel supplémentaire sans API de renvoi', (
     tester,
@@ -639,6 +735,15 @@ void main() {
           findsOneWidget,
         );
         expect(find.text('Détail technique confidentiel'), findsNothing);
+        if (verification) {
+          expect(
+            tester
+                .widgetList<TextField>(find.byType(TextField))
+                .map((field) => field.controller!.text)
+                .join(),
+            '012345',
+          );
+        }
         await _tap(
           tester,
           find.text(verification ? 'Valider mon email' : 'Se connecter'),
