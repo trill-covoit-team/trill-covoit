@@ -48,7 +48,10 @@ class AppShadow {
 class AppMotion {
   static const fast = Duration(milliseconds: 200);
   static const normal = Duration(milliseconds: 300);
+  static const slow = Duration(milliseconds: 450);
+  static const stagger = Duration(milliseconds: 60);
   static const curve = Curves.easeOutCubic;
+  static const emphasized = Curves.easeInOutCubicEmphasized;
 }
 
 const double kMinTouch = 48;

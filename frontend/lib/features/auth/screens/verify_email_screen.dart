@@ -9,6 +9,8 @@ import 'package:trill_covoit/features/auth/screens/login_register_screen.dart';
 import 'package:trill_covoit/features/auth/widgets/auth_error_messages.dart';
 import 'package:trill_covoit/features/auth/widgets/auth_form_layout.dart';
 import 'package:trill_covoit/features/auth/widgets/auth_message.dart';
+import 'package:trill_covoit/widgets/loading_morph_button.dart';
+import 'package:trill_covoit/widgets/motion_field.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
   const VerifyEmailScreen({super.key, required this.email, this.bannerMessage});
@@ -111,6 +113,10 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
     if (_verified || _submitting || _resettingCode || auth.isLoading) return;
     if (!RegExp(r'^\d{6}$').hasMatch(_code)) {
       setState(() => _error = 'Veuillez saisir les 6 chiffres du code.');
+      final firstEmpty = _controllers.indexWhere(
+        (controller) => controller.text.isEmpty,
+      );
+      _focusNodes[firstEmpty < 0 ? 0 : firstEmpty].requestFocus();
       return;
     }
     setState(() {
@@ -157,14 +163,6 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
   }
 
   Widget _digit(int index, ThemeData theme) {
-    final border = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(AppRadius.sm),
-      borderSide: BorderSide(
-        color: _invalidCode
-            ? theme.colorScheme.error
-            : theme.colorScheme.outline,
-      ),
-    );
     return SizedBox(
       width: kMinTouch,
       child: Focus(
@@ -178,51 +176,48 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
           }
           return KeyEventResult.ignored;
         },
-        child: TextField(
-          key: ValueKey(
-            index == 0 ? 'verification-code' : 'verification-digit-$index',
-          ),
-          controller: _controllers[index],
+        child: MotionField(
           focusNode: _focusNodes[index],
-          enabled: !_submitting && !_resettingCode,
-          keyboardType: TextInputType.number,
-          textInputAction: index == 5
-              ? TextInputAction.done
-              : TextInputAction.next,
-          autofillHints: const [AutofillHints.oneTimeCode],
-          autocorrect: false,
-          enableSuggestions: false,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(6),
-          ],
-          textAlign: TextAlign.center,
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: _invalidCode
-                ? theme.colorScheme.error
-                : theme.colorScheme.onSurface,
-          ),
-          decoration: InputDecoration(
-            // Le libellé sémantique reste distinct pour chacune des six cases.
-            hintText: '–',
-            border: border,
-            enabledBorder: border,
-            disabledBorder: border,
-            focusedBorder: border.copyWith(
-              borderSide: BorderSide(
-                color: _invalidCode
-                    ? theme.colorScheme.error
-                    : theme.colorScheme.primary,
+          error: _invalidCode,
+          attempt: 0,
+          radius: AppRadius.sm,
+          animateShake: false,
+          child: TextField(
+            key: ValueKey(
+              index == 0 ? 'verification-code' : 'verification-digit-$index',
+            ),
+            controller: _controllers[index],
+            focusNode: _focusNodes[index],
+            enabled: !_submitting && !_resettingCode,
+            keyboardType: TextInputType.number,
+            textInputAction: index == 5
+                ? TextInputAction.done
+                : TextInputAction.next,
+            autofillHints: const [AutofillHints.oneTimeCode],
+            autocorrect: false,
+            enableSuggestions: false,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(6),
+            ],
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: _invalidCode
+                  ? theme.colorScheme.error
+                  : theme.colorScheme.onSurface,
+            ),
+            decoration: InputDecoration(
+              // Le libellé sémantique reste distinct pour chacune des six cases.
+              hintText: '–',
+              constraints: const BoxConstraints(minHeight: kMinTouch),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppSpace.s4,
+                vertical: AppSpace.s12,
               ),
             ),
-            constraints: const BoxConstraints(minHeight: kMinTouch),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: AppSpace.s4,
-              vertical: AppSpace.s12,
-            ),
+            onChanged: (value) => _changed(index, value),
+            onSubmitted: (_) => _submit(),
           ),
-          onChanged: (value) => _changed(index, value),
-          onSubmitted: (_) => _submit(),
         ),
       ),
     );
@@ -242,22 +237,15 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
         showTitle: false,
         isBusy: busy,
         onBack: _openAuth,
-        footer: FilledButton(
+        footer: LoadingMorphButton(
+          label: _verified ? 'Se connecter' : 'Valider mon email',
+          isLoading: busy,
+          loadingLabel: 'Validation en cours',
           onPressed: busy || _resettingCode
               ? null
               : _verified
               ? _openAuth
               : _submit,
-          child: busy
-              ? const SizedBox(
-                  width: AppSpace.s24,
-                  height: AppSpace.s24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: AppSpace.s4,
-                    semanticsLabel: 'Validation en cours',
-                  ),
-                )
-              : Text(_verified ? 'Se connecter' : 'Valider mon email'),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

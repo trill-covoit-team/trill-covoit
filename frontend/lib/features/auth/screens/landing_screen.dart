@@ -3,13 +3,25 @@ import 'dart:ui' show Tangent;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:trill_covoit/core/theme/tokens.dart';
 import 'package:trill_covoit/features/auth/providers/auth_provider.dart';
 import 'package:trill_covoit/features/auth/screens/login_register_screen.dart';
+import 'package:trill_covoit/widgets/motion_entrance.dart';
 
-class LandingScreen extends StatelessWidget {
+class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
+
+  @override
+  State<LandingScreen> createState() => _LandingScreenState();
+}
+
+class _LandingScreenState extends State<LandingScreen> {
+  final _entrance = EntranceTimeline();
+  Widget _enter(int index, Widget child) => MotionEntrance(
+    timeline: _entrance, index: index, start: AppMotion.slow, child: child,
+  );
 
   void _openForm(BuildContext context, {required bool initialLogin}) {
     final auth = context.read<AuthProvider>();
@@ -53,7 +65,13 @@ class LandingScreen extends StatelessWidget {
                             fit: StackFit.expand,
                             children: [
                               ExcludeSemantics(
-                                child: CustomPaint(
+                                child: Animate(
+                                  effects: [
+                                    CustomEffect(
+                                      duration: MediaQuery.disableAnimationsOf(context)
+                                          ? Duration.zero : AppMotion.slow,
+                                      curve: AppMotion.curve,
+                                      builder: (_, value, _) => CustomPaint(
                                   painter: _RoutePainter(
                                     primary: theme.colorScheme.primary,
                                     background: theme
@@ -68,7 +86,12 @@ class LandingScreen extends StatelessWidget {
                                       context,
                                     ),
                                     geometry: geometry,
+                                    progress: MediaQuery.disableAnimationsOf(context) ? 1 : value,
                                   ),
+                                ),
+                                    ),
+                                  ],
+                                  child: const SizedBox.expand(),
                                 ),
                               ),
                               Positioned(
@@ -141,30 +164,30 @@ class LandingScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Text(
+                              _enter(0, Text(
                                 'Le trajet du quotidien, partagé.',
                                 style: theme.textTheme.displayLarge,
-                              ),
+                              )),
                               const SizedBox(height: AppSpace.s12),
-                              Text(
+                              _enter(1, Text(
                                 'Partagez vos trajets avec vos voisins et collègues.',
                                 style: theme.textTheme.bodyLarge,
-                              ),
+                              )),
                               const SizedBox(height: AppSpace.s24),
-                              const _BenefitRow(
+                              _enter(2, const _BenefitRow(
                                 icon: Icons.savings_outlined,
                                 label: "Jusqu'à 70 % moins cher qu'en solo",
-                              ),
+                              )),
                               const SizedBox(height: AppSpace.s12),
-                              const _BenefitRow(
+                              _enter(3, const _BenefitRow(
                                 icon: Icons.people_outline,
                                 label: 'Des voisins qui font le même trajet',
-                              ),
+                              )),
                               const SizedBox(height: AppSpace.s12),
-                              const _BenefitRow(
+                              _enter(4, const _BenefitRow(
                                 icon: Icons.eco_outlined,
                                 label: 'Moins de CO2 chaque jour',
-                              ),
+                              )),
                             ],
                           ),
                         ),
@@ -184,15 +207,15 @@ class LandingScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  FilledButton(
+                  _enter(5, FilledButton(
                     onPressed: () => _openForm(context, initialLogin: false),
                     child: const Text('Commencer'),
-                  ),
+                  )),
                   const SizedBox(height: AppSpace.s12),
-                  OutlinedButton(
+                  _enter(6, OutlinedButton(
                     onPressed: () => _openForm(context, initialLogin: true),
                     child: const Text("J'ai déjà un compte"),
-                  ),
+                  )),
                 ],
               ),
             ),
@@ -345,6 +368,7 @@ class _RoutePainter extends CustomPainter {
     required this.labelStyle,
     required this.textScaler,
     required this.geometry,
+    this.progress = 1,
   });
 
   final Color primary;
@@ -353,6 +377,7 @@ class _RoutePainter extends CustomPainter {
   final TextStyle labelStyle;
   final TextScaler textScaler;
   final _RouteGeometry geometry;
+  final double progress;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -366,8 +391,9 @@ class _RoutePainter extends CustomPainter {
           colors: [background, primary],
         ).createShader(bounds),
     );
+    final metric = geometry.route.computeMetrics().first;
     canvas.drawPath(
-      geometry.route,
+      metric.extractPath(0, metric.length * progress),
       Paint()
         ..color = foreground
         ..style = PaintingStyle.stroke
@@ -428,6 +454,7 @@ class _RoutePainter extends CustomPainter {
   @override
   bool shouldRepaint(_RoutePainter oldDelegate) =>
       primary != oldDelegate.primary ||
+      progress != oldDelegate.progress ||
       background != oldDelegate.background ||
       foreground != oldDelegate.foreground ||
       geometry != oldDelegate.geometry ||

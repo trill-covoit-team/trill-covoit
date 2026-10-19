@@ -4,14 +4,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trill_covoit/core/theme/app_theme.dart';
-import 'package:trill_covoit/core/theme/tokens.dart';
 import 'package:trill_covoit/features/auth/providers/auth_provider.dart';
 import 'package:trill_covoit/features/auth/screens/home_screen.dart';
 import 'package:trill_covoit/features/auth/screens/landing_screen.dart';
@@ -54,6 +52,7 @@ Future<AuthProvider> _pumpApp(
           : MaterialApp(theme: AppTheme.light, home: screen),
     ),
   );
+  await tester.pumpAndSettle();
   return auth;
 }
 
@@ -585,9 +584,9 @@ void main() {
     for (final field in tester.widgetList<TextField>(find.byType(TextField))) {
       expect(field.controller!.text, isEmpty);
       expect(
-        (field.decoration!.enabledBorder! as OutlineInputBorder)
-            .borderSide
-            .color,
+        (Theme.of(tester.element(find.byWidget(field)))
+                .inputDecorationTheme.enabledBorder! as OutlineInputBorder)
+            .borderSide.color,
         Theme.of(tester.element(_codeField)).colorScheme.error,
       );
     }

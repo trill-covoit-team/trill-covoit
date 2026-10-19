@@ -74,6 +74,7 @@ void main() {
         child: const MainApp(),
       ),
     );
+    await tester.pumpAndSettle();
 
     expect(find.text('TRILL Covoit’'), findsOneWidget);
     expect(find.text('Commencer'), findsOneWidget);

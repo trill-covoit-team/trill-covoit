@@ -8,6 +8,9 @@ import 'package:trill_covoit/features/auth/widgets/auth_form_layout.dart';
 import 'package:trill_covoit/features/auth/widgets/auth_message.dart';
 import 'package:trill_covoit/features/auth/widgets/auth_error_messages.dart';
 import 'package:trill_covoit/legal/legal_texts.dart';
+import 'package:trill_covoit/widgets/motion_entrance.dart';
+import 'package:trill_covoit/widgets/motion_field.dart';
+import 'package:trill_covoit/widgets/loading_morph_button.dart';
 
 class LoginRegisterScreen extends StatefulWidget {
   const LoginRegisterScreen({
@@ -36,6 +39,12 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   bool _showTermsError = false;
   String? _emailError;
   String? _bannerError;
+  final _entrance = EntranceTimeline();
+  final _emailFocus = FocusNode();
+  final _passwordFocus = FocusNode();
+  int _feedbackAttempt = 0;
+  bool _emailInvalid = false;
+  bool _passwordInvalid = false;
   late final TapGestureRecognizer _termsRecognizer;
   late final TapGestureRecognizer _privacyRecognizer;
 
@@ -57,6 +66,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     _passwordController.dispose();
     _termsRecognizer.dispose();
     _privacyRecognizer.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
@@ -75,6 +86,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       _confirmationMessage = null;
       _emailError = null;
       _bannerError = null;
+      _emailInvalid = false;
+      _passwordInvalid = false;
     });
   }
 
@@ -122,7 +135,10 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       _showTermsError = !_isLogin && !_termsAccepted;
       _confirmationMessage = null;
     });
-    if (!isValid || _showTermsError) return;
+    if (!isValid || _showTermsError) {
+      _fieldFeedback();
+      return;
+    }
 
     FocusScope.of(context).unfocus();
     final email = _emailController.text.trim();
@@ -158,8 +174,25 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         }
       });
       _formKey.currentState?.validate();
+      if (_emailError != null) _fieldFeedback();
     }
   }
+
+  void _fieldFeedback() {
+    setState(() {
+      _feedbackAttempt++;
+      _emailInvalid = _validateEmail(_emailController.text) != null;
+      _passwordInvalid = _validatePassword(_passwordController.text) != null;
+    });
+    if (_emailInvalid) {
+      _emailFocus.requestFocus();
+    } else if (_passwordInvalid) {
+      _passwordFocus.requestFocus();
+    }
+  }
+
+  Widget _enter(int index, Widget child) =>
+      MotionEntrance(timeline: _entrance, index: index, child: child);
 
   void _showLegal({required bool privacy}) {
     showModalBottomSheet<void>(
@@ -219,43 +252,40 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       title: 'Bienvenue',
       showTitle: false,
       isBusy: isLoading,
-      footer: FilledButton(
+      footer: _enter(5, LoadingMorphButton(
+        label: _isLogin ? 'Se connecter' : 'Créer mon compte',
+        isLoading: isLoading,
         onPressed: isLoading ? null : _submit,
-        child: isLoading
-            ? const SizedBox(
-                width: AppSpace.s24,
-                height: AppSpace.s24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  semanticsLabel: 'Envoi en cours',
-                ),
-              )
-            : Text(_isLogin ? 'Se connecter' : 'Créer mon compte'),
-      ),
+      )),
       child: AutofillGroup(
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Semantics(
+              _enter(0, Semantics(
                 header: true,
                 child: Text('Bienvenue', style: theme.textTheme.headlineMedium),
-              ),
+              )),
               const SizedBox(height: AppSpace.s24),
-              _ModeToggle(
+              _enter(1, _ModeToggle(
                 isLogin: _isLogin,
                 isLoading: isLoading,
                 onChanged: _switchMode,
-              ),
+              )),
               const SizedBox(height: AppSpace.s24),
               if (_confirmationMessage != null)
                 AuthMessage(message: _confirmationMessage!),
               if (_bannerError != null)
                 AuthMessage(message: _bannerError!, isError: true),
-              TextFormField(
+              _enter(2, MotionField(
+                focusNode: _emailFocus,
+                error: _emailInvalid,
+                attempt: _feedbackAttempt,
+                child: TextFormField(
                 key: const ValueKey('email'),
                 controller: _emailController,
+                focusNode: _emailFocus,
                 enabled: !isLoading,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
@@ -273,6 +303,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                 ),
                 validator: _validateEmail,
                 onChanged: (_) {
+                  setState(() => _emailInvalid = false);
                   if (_emailError != null || _bannerError != null) {
                     setState(() {
                       _emailError = null;
@@ -285,11 +316,16 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                     auth.clearMessages();
                   }
                 },
-              ),
+              ))),
               const SizedBox(height: AppSpace.s24),
-              TextFormField(
+              _enter(3, MotionField(
+                focusNode: _passwordFocus,
+                error: _passwordInvalid,
+                attempt: _feedbackAttempt,
+                child: TextFormField(
                 key: const ValueKey('password'),
                 controller: _passwordController,
+                focusNode: _passwordFocus,
                 enabled: !isLoading,
                 obscureText: _obscurePassword,
                 keyboardType: TextInputType.visiblePassword,
@@ -322,16 +358,19 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                   ),
                 ),
                 validator: _validatePassword,
-                onChanged: (_) => setState(() => _bannerError = null),
+                onChanged: (_) => setState(() {
+                  _bannerError = null;
+                  _passwordInvalid = false;
+                }),
                 onFieldSubmitted: (_) => _submit(),
-              ),
+              ))),
               if (!_isLogin) ...[
                 if (_passwordController.text.isNotEmpty) ...[
                   const SizedBox(height: AppSpace.s12),
                   _PasswordStrength(password: _passwordController.text),
                 ],
                 const SizedBox(height: AppSpace.s16),
-                Row(
+                _enter(4, Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(
@@ -389,7 +428,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                       ),
                     ),
                   ],
-                ),
+                )),
                 if (_showTermsError)
                   const AuthMessage(
                     message:
