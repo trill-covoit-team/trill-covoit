@@ -19,6 +19,12 @@ class AppTheme {
     final textSub = isDark
         ? AppColors.textSecondaryDark
         : AppColors.textSecondary;
+    final secondaryContainer = isDark
+        ? AppColors.surfaceAltDark
+        : AppColors.primarySoft;
+    final onSecondaryContainer = isDark
+        ? AppColors.primaryOnDark
+        : AppColors.primary;
 
     final scheme = ColorScheme(
       brightness: b,
@@ -26,6 +32,8 @@ class AppTheme {
       onPrimary: onPrimary,
       secondary: AppColors.accent,
       onSecondary: AppColors.textPrimary,
+      secondaryContainer: secondaryContainer,
+      onSecondaryContainer: onSecondaryContainer,
       error: error,
       onError: isDark ? AppColors.textPrimary : AppColors.surface,
       surface: surface,
@@ -48,9 +56,12 @@ class AppTheme {
       headlineMedium: s(26, FontWeight.w800, h: 1.2),
       titleLarge: s(20, FontWeight.w700),
       titleMedium: s(16, FontWeight.w600),
+      titleSmall: s(14, FontWeight.w600),
       bodyLarge: s(16, FontWeight.w400, h: 1.5),
       bodyMedium: s(14, FontWeight.w400, h: 1.45, c: textSub),
+      bodySmall: s(12, FontWeight.w400, c: textSub),
       labelLarge: s(15, FontWeight.w600),
+      labelMedium: s(13, FontWeight.w600, c: textSub),
       labelSmall: s(12, FontWeight.w600, c: textSub),
     );
 
@@ -62,7 +73,7 @@ class AppTheme {
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(AppRadius.md),
     );
-    const minSize = Size.fromHeight(kMinTouch + 4);
+    const minSize = Size(kMinTouch, kMinTouch + 4);
 
     return ThemeData(
       useMaterial3: true,
@@ -149,9 +160,13 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surface,
-        indicatorColor: isDark
-            ? AppColors.surfaceAltDark
-            : AppColors.primarySoft,
+        indicatorColor: secondaryContainer,
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return IconThemeData(color: onSecondaryContainer);
+          }
+          return IconThemeData(color: textSub);
+        }),
         height: 68,
         labelTextStyle: WidgetStatePropertyAll(textTheme.labelSmall),
       ),
