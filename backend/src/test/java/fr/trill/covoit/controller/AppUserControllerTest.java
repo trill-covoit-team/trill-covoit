@@ -1,48 +1,48 @@
 package fr.trill.covoit.controller;
 
+import fr.trill.covoit.dto.MessageResponse;
+import fr.trill.covoit.dto.UpdateAppUserRequest; // Assurez-vous d'importer votre DTO pour le patch
 import fr.trill.covoit.model.AppUser;
-import fr.trill.covoit.repository.AppUserRepository;
-import fr.trill.covoit.upload.PhotoUploader;
+import fr.trill.covoit.service.AppUserService; // On mocke le service appelé par le contrôleur
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.server.ResponseStatusException;
+import tools.jackson.databind.ObjectMapper;
 
-import java.io.IOException;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
 public class AppUserControllerTest {
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private MockMvc mockMvc;
-
     @Mock
-    private AppUserRepository appUserRepository;
-
+    private AppUserService appUserService;
     @InjectMocks
     private AppUserController appUserController;
-
-    @Mock
-    private PhotoUploader photoUploader;
-
     private AppUser user;
 
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(appUserController)
-                .setControllerAdvice(new IllegalArgumentException())
+                .setControllerAdvice(new IllegalArgumentException()) // ou votre gestionnaire d'exceptions global
                 .build();
+
         user = new AppUser();
         user.setFirstName("Marc");
         user.setLastName("Dutrain");
@@ -54,53 +54,44 @@ public class AppUserControllerTest {
     }
 
     @Test
-    void testGetOneUserFound() {
-        when(appUserRepository.findById(1L)).thenReturn(Optional.of(user));
+    void testGetOneUserFound() throws Exception {
+        // getOneUser renvoie directement l'AppUser (ou lève une exception)
+        when(appUserService.getOneUser(1L)).thenReturn(user);
 
-        ResponseEntity<AppUser> result = appUserController.getOneUser(1L);
-
-        assertTrue(result.isPresent());
-        assertEquals("Marc", result.get().getFirstName());
+        mockMvc.perform(get("/users/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.firstName").value("Marc"));
     }
 
     @Test
-    void testGetOneUserNotFound() {
-        when(appUserRepository.findById(4L)).thenReturn(Optional.empty());
+    void testGetOneUserNotFound() throws Exception {
+        when(appUserService.getOneUser(4L)).thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Utilisateur non trouvé"));
 
-        // When
-        Optional<AppUser> result = appUserController.getOneUser(4L);
-
-        // Then
-        assertTrue(result.isEmpty());
+        mockMvc.perform(get("/users/4"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
-    void testPatchOneUser() {
-        when(appUserRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(appUserRepository.save(any(AppUser.class))).thenReturn(user);
+    void testPatchOneUser() throws Exception {
+        UpdateAppUserRequest request = new UpdateAppUserRequest();
+        request.setFirstName("ryad");
+        request.setBio("Attention changement bio");
 
-        String response = appUserController.patchOneUser(
-                1L,
-                null,                 // email
-                null,                       // passwordHash
-                null,                       // emailVerified
-                "ryad",                     // nouveau prénom
-                null,                       // lastName
-                null,                       // photoUrl
-                "Attention changement bio"  // nouvelle bio
-        );
-        assertEquals("Saved", response);
-        assertEquals("ryad", user.getFirstName());
-        assertEquals("Attention changement bio", user.getBio());
-        assertEquals("Dutrain", user.getLastName());
+        // Le service renvoie un MessageResponse
+        when(appUserService.patchOneUser(eq(1L), any())).thenReturn(new MessageResponse("Saved"));
 
-        verify(appUserRepository, times(1)).save(user);
+        mockMvc.perform(patch("/users/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Saved")); // Si MessageResponse possède un champ "message", adaptez selon votre DTO
+
+        verify(appUserService, times(1)).patchOneUser(eq(1L), any());
     }
 
     @Test
-    void testUploadPhotoSuccess() throws IOException {
-        when(appUserRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(photoUploader.savePhoto(any(), eq(1L), any(AppUser.class))).thenReturn("Saved");
+    void testUploadPhotoSuccess() throws Exception {
+        when(appUserService.saveUserPhoto(eq(1L), any())).thenReturn(new MessageResponse("Saved"));
 
         MockMultipartFile file = new MockMultipartFile(
                 "file",
@@ -109,20 +100,19 @@ public class AppUserControllerTest {
                 "contenu-image".getBytes()
         );
 
-        ResponseEntity<String> response = appUserController.putOneUserPhoto(1L, file);
+        mockMvc.perform(multipart(HttpMethod.PUT, "/users/1/photo").file(file))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Saved"));
 
-        assertEquals(200, response.getStatusCode().value());
-        assertEquals("Saved", response.getBody());
-
-        verify(photoUploader, times(1)).savePhoto(any(), eq(1L), any(AppUser.class));
+        verify(appUserService, times(1)).saveUserPhoto(eq(1L), any());
     }
 
     @Test
-    void testUploadPhotoInvalidType() throws IOException {
-        // Given
-        when(appUserRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(photoUploader.savePhoto(any(), eq(1L), any(AppUser.class))).thenReturn("Le fichier fourni n'est pas une image valide (formats acceptés : JPEG, PNG).");
-        // Fichier avec un mauvais type MIME (ex: texte)
+    void testUploadPhotoInvalidType() throws Exception {
+        // Le service lève une IllegalArgumentException si le fichier n'est pas valide
+        when(appUserService.saveUserPhoto(eq(1L), any()))
+                .thenThrow(new IllegalArgumentException("Le fichier fourni n'est pas une image valide (formats acceptés : JPEG, PNG)."));
+
         MockMultipartFile file = new MockMultipartFile(
                 "file",
                 "document.txt",
@@ -130,22 +120,19 @@ public class AppUserControllerTest {
                 "texte simple".getBytes()
         );
 
-        ResponseEntity<String> response = appUserController.putOneUserPhoto(1L, file);
-
-        assertEquals(400, response.getStatusCode().value());
-        assertTrue(response.getBody().contains("pas une image valide"));
+        mockMvc.perform(multipart(HttpMethod.PUT, "/users/1/photo").file(file))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("pas une image valide")));
     }
 
     @Test
-    void testDeletePhotoSuccess() {
-        when(appUserRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(photoUploader.deletePhoto(eq(1L), any(AppUser.class))).thenReturn(true);
+    void testDeletePhotoSuccess() throws Exception {
+        when(appUserService.deleteUserPhoto(1L)).thenReturn(new MessageResponse("Successfully deleted photo"));
 
-        ResponseEntity<String> response = appUserController.deleteOneUserPhoto(1L);
+        mockMvc.perform(delete("/users/1/photo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Successfully deleted photo"));
 
-        assertEquals(200, response.getStatusCode().value());
-        assertEquals("Successfully deleted photo", response.getBody());
-
-        verify(photoUploader, times(1)).deletePhoto(eq(1L), any(AppUser.class));
+        verify(appUserService, times(1)).deleteUserPhoto(1L);
     }
 }
