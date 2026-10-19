@@ -16,7 +16,6 @@ void main() {
     expect(theme.scaffoldBackgroundColor, AppColors.bg);
     expect(theme.colorScheme.primary, AppColors.primary);
     expect(theme.colorScheme.secondary, AppColors.accent);
-    expect(theme.textTheme.headlineMedium?.fontWeight, FontWeight.w800);
   });
 
   test('Les erreurs restent contrastées dans les deux thèmes (WCAG AA)', () {

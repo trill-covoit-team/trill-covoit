@@ -16,9 +16,6 @@ class AppTheme {
     final border = isDark ? AppColors.borderDark : AppColors.border;
     final error = isDark ? AppColors.errorDark : AppColors.error;
     final text = isDark ? AppColors.textPrimaryDark : AppColors.textPrimary;
-    final textSub = isDark
-        ? AppColors.textSecondaryDark
-        : AppColors.textSecondary;
     final secondaryContainer = isDark
         ? AppColors.surfaceAltDark
         : AppColors.primarySoft;
@@ -42,28 +39,12 @@ class AppTheme {
       outline: border,
     );
 
-    final base = GoogleFonts.plusJakartaSansTextTheme();
-    TextStyle s(double size, FontWeight w, {double h = 1.3, Color? c}) =>
-        GoogleFonts.plusJakartaSans(
-          fontSize: size,
-          fontWeight: w,
-          height: h,
-          color: c ?? text,
-        );
-
-    final textTheme = base.copyWith(
-      displayLarge: s(34, FontWeight.w800, h: 1.15),
-      headlineMedium: s(26, FontWeight.w800, h: 1.2),
-      titleLarge: s(20, FontWeight.w700),
-      titleMedium: s(16, FontWeight.w600),
-      titleSmall: s(14, FontWeight.w600),
-      bodyLarge: s(16, FontWeight.w400, h: 1.5),
-      bodyMedium: s(14, FontWeight.w400, h: 1.45, c: textSub),
-      bodySmall: s(12, FontWeight.w400, c: textSub),
-      labelLarge: s(15, FontWeight.w600),
-      labelMedium: s(13, FontWeight.w600, c: textSub),
-      labelSmall: s(12, FontWeight.w600, c: textSub),
+    final base = ThemeData(
+      useMaterial3: true,
+      brightness: b,
+      colorScheme: scheme,
     );
+    final textTheme = GoogleFonts.plusJakartaSansTextTheme(base.textTheme);
 
     OutlineInputBorder field(Color c, [double w = 1]) => OutlineInputBorder(
       borderRadius: BorderRadius.circular(AppRadius.md),
@@ -161,12 +142,6 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surface,
         indicatorColor: secondaryContainer,
-        iconTheme: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return IconThemeData(color: onSecondaryContainer);
-          }
-          return IconThemeData(color: textSub);
-        }),
         height: 68,
         labelTextStyle: WidgetStatePropertyAll(textTheme.labelSmall),
       ),
