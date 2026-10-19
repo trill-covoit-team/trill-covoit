@@ -11,6 +11,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -21,7 +23,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class AppUserTest {
+public class AppUserControllerTest {
+
+    private MockMvc mockMvc;
 
     @Mock
     private AppUserRepository appUserRepository;
@@ -36,6 +40,9 @@ public class AppUserTest {
 
     @BeforeEach
     void setUp() {
+        mockMvc = MockMvcBuilders.standaloneSetup(appUserController)
+                .setControllerAdvice(new IllegalArgumentException())
+                .build();
         user = new AppUser();
         user.setFirstName("Marc");
         user.setLastName("Dutrain");
@@ -50,7 +57,7 @@ public class AppUserTest {
     void testGetOneUserFound() {
         when(appUserRepository.findById(1L)).thenReturn(Optional.of(user));
 
-        Optional<AppUser> result = appUserController.getOneUser(1L);
+        ResponseEntity<AppUser> result = appUserController.getOneUser(1L);
 
         assertTrue(result.isPresent());
         assertEquals("Marc", result.get().getFirstName());
