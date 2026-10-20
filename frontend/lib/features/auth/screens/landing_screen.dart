@@ -169,7 +169,9 @@ class _LandingScreenState extends State<LandingScreen> {
                             children: [
                               _enter(0, Text(
                                 'Le trajet du quotidien, partagé.',
-                                style: theme.textTheme.displayLarge,
+                                style: theme.textTheme.headlineLarge?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
                               )),
                               const SizedBox(height: AppSpace.s12),
                               _enter(1, Text(
