@@ -44,6 +44,9 @@ class _LandingScreenState extends State<LandingScreen> {
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
+                  if (constraints.maxWidth <= 0 || constraints.maxHeight <= 0) {
+                    return const SizedBox.shrink();
+                  }
                   final visualSize = Size(
                     constraints.maxWidth,
                     constraints.maxHeight * .5,
@@ -322,9 +325,10 @@ class _RouteLabel {
       textDirection: TextDirection.ltr,
       textScaler: scaler,
     )..layout(maxWidth: size.width * .4);
+    final maxLeft = math.max(AppSpace.s8, size.width - text.width - AppSpace.s8);
     final left = (alignRight ? anchor.dx - text.width : anchor.dx).clamp(
       AppSpace.s8,
-      size.width - text.width - AppSpace.s8,
+      maxLeft,
     );
     origin = Offset(left, anchor.dy);
     bounds = (origin & text.size).inflate(AppSpace.s4);
