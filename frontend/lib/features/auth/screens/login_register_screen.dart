@@ -429,12 +429,14 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                     ),
                   ],
                 )),
-                if (_showTermsError)
+                if (_showTermsError) ...[
+                  const SizedBox(height: AppSpace.s12),
                   const AuthMessage(
                     message:
                         'Vous devez accepter les conditions pour continuer.',
                     isError: true,
                   ),
+                ],
               ],
             ],
           ),
