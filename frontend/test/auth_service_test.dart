@@ -144,7 +144,7 @@ void main() {
       );
 
       expect(session.accessToken, 'jwt-sample-token');
-      expect(session.user.id, 1);
+      expect(session.user.userId, 1);
       expect(session.user.emailVerified, isTrue);
     });
 

@@ -5,7 +5,7 @@ import 'package:trill_covoit/features/auth/models/user_model.dart';
 
 void main() {
   group('UserModel', () {
-    test('Désérialise correctement avec la clé "userId"', () {
+    test('Désérialise correctement un utilisateur', () {
       final json = {
         'userId': 42,
         'email': 'etudiant@univ.fr',
@@ -17,27 +17,10 @@ void main() {
       final user = UserModel.fromJson(json);
 
       expect(user.userId, 42);
-      expect(user.id, 42);
       expect(user.email, 'etudiant@univ.fr');
       expect(user.emailVerified, isTrue);
       expect(user.firstName, 'Jean');
       expect(user.lastName, 'Dupont');
-    });
-
-    test('Désérialise correctement avec la clé "id"', () {
-      final json = {
-        'id': 7,
-        'email': 'test@univ.fr',
-        'emailVerified': false,
-      };
-
-      final user = UserModel.fromJson(json);
-
-      expect(user.userId, 7);
-      expect(user.id, 7);
-      expect(user.email, 'test@univ.fr');
-      expect(user.emailVerified, isFalse);
-      expect(user.firstName, isNull);
     });
 
     test('Sérialise vers un Map JSON valide avec userId', () {
@@ -75,7 +58,6 @@ void main() {
       expect(session.accessToken, 'jwt-token-123');
       expect(session.tokenType, 'Bearer');
       expect(session.user.userId, 5);
-      expect(session.user.id, 5);
       expect(session.user.email, 'session@univ.fr');
     });
 

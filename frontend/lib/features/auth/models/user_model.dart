@@ -13,10 +13,8 @@ class UserModel {
     this.lastName,
   });
 
-  int get id => userId;
-
   factory UserModel.fromJson(Map<String, dynamic> json) {
-    final rawId = json['userId'] ?? json['id'] ?? 0;
+    final rawId = json['userId'] ?? 0;
     return UserModel(
       userId: rawId is int ? rawId : int.tryParse(rawId.toString()) ?? 0,
       email: json['email'] as String? ?? '',
