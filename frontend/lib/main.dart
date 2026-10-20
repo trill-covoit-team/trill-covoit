@@ -5,8 +5,6 @@ import 'package:trill_covoit/features/auth/providers/auth_provider.dart';
 import 'package:trill_covoit/features/auth/screens/home_screen.dart';
 import 'package:trill_covoit/features/auth/screens/landing_screen.dart';
 
-import 'core/theme/app_theme.dart';
-
 void main() {
   runApp(
     MultiProvider(

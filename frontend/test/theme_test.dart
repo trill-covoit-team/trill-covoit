@@ -3,8 +3,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:trill_covoit/core/theme/app_theme.dart';
 import 'package:trill_covoit/core/theme/tokens.dart';
+import 'package:trill_covoit/features/auth/providers/auth_provider.dart';
 import 'package:trill_covoit/main.dart';
 
 void main() {
@@ -139,9 +141,15 @@ void main() {
   });
 
   testWidgets("L'application démarre avec le thème partagé", (tester) async {
-    await tester.pumpWidget(const MainApp());
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => AuthProvider(),
+        child: const MainApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(Scaffold));
+    final context = tester.element(find.byType(Scaffold).first);
     expect(Theme.of(context).scaffoldBackgroundColor, AppColors.bg);
     expect(tester.takeException(), isNull);
   });
