@@ -11,7 +11,6 @@ import fr.trill.covoit.exception.InvalidCredentialsException;
 import fr.trill.covoit.exception.InvalidVerificationCodeException;
 import fr.trill.covoit.model.AppUser;
 import fr.trill.covoit.repository.AppUserRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +20,6 @@ import java.time.Duration;
 import java.time.Instant;
 
 @Service
-@RequiredArgsConstructor
 public class AuthService {
 
     private final AppUserRepository userRepository;
@@ -30,6 +28,12 @@ public class AuthService {
 
     private static final int CODE_EXPIRATION_MINUTES = 15;
     private final SecureRandom secureRandom = new SecureRandom();
+
+    public AuthService(AppUserRepository userRepository, PasswordEncoder passwordEncoder, EmailService emailService) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
+    }
 
     @Transactional
     public MessageResponse register(RegisterRequest request) {
