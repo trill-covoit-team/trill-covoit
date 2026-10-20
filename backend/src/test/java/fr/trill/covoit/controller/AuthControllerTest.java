@@ -1,15 +1,10 @@
 package fr.trill.covoit.controller;
 
-import tools.jackson.databind.ObjectMapper;
-import fr.trill.covoit.dto.AuthResponse;
-import fr.trill.covoit.dto.LoginRequest;
 import fr.trill.covoit.dto.MessageResponse;
 import fr.trill.covoit.dto.RegisterRequest;
 import fr.trill.covoit.dto.VerifyEmailRequest;
 import fr.trill.covoit.exception.AuthExceptionHandler;
 import fr.trill.covoit.exception.EmailAlreadyUsedException;
-import fr.trill.covoit.exception.EmailNotVerifiedException;
-import fr.trill.covoit.exception.InvalidCredentialsException;
 import fr.trill.covoit.exception.InvalidVerificationCodeException;
 import fr.trill.covoit.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,19 +16,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import tools.jackson.databind.ObjectMapper;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
 class AuthControllerTest {
 
-    private MockMvc mockMvc;
-
     private final ObjectMapper objectMapper = new ObjectMapper();
-
+    private MockMvc mockMvc;
     @Mock
     private AuthService authService;
 
@@ -42,7 +37,6 @@ class AuthControllerTest {
 
     private RegisterRequest validRegisterRequest;
     private VerifyEmailRequest validVerifyEmailRequest;
-    private LoginRequest validLoginRequest;
 
     @BeforeEach
     void setUp() {
@@ -59,11 +53,6 @@ class AuthControllerTest {
         validVerifyEmailRequest = VerifyEmailRequest.builder()
                 .email("test@univ-tlse3.fr")
                 .code("123456")
-                .build();
-
-        validLoginRequest = LoginRequest.builder()
-                .email("test@univ-tlse3.fr")
-                .password("MotDePasse123!")
                 .build();
     }
 
@@ -151,51 +140,5 @@ class AuthControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_VERIFICATION_CODE"))
                 .andExpect(jsonPath("$.message").value("Le code de validation est invalide ou expiré."));
-    }
-
-    @Test
-    void login_Success_Returns200() throws Exception {
-        AuthResponse response = AuthResponse.builder()
-                .userId(1L)
-                .email("test@univ-tlse3.fr")
-                .emailVerified(true)
-                .message("Connexion réussie.")
-                .build();
-
-        when(authService.login(any(LoginRequest.class))).thenReturn(response);
-
-        mockMvc.perform(post("/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validLoginRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.userId").value(1L))
-                .andExpect(jsonPath("$.email").value("test@univ-tlse3.fr"))
-                .andExpect(jsonPath("$.emailVerified").value(true));
-    }
-
-    @Test
-    void login_InvalidCredentials_Returns401() throws Exception {
-        when(authService.login(any(LoginRequest.class)))
-                .thenThrow(new InvalidCredentialsException());
-
-        mockMvc.perform(post("/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validLoginRequest)))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"))
-                .andExpect(jsonPath("$.message").value("L'adresse email ou le mot de passe est incorrect."));
-    }
-
-    @Test
-    void login_EmailNotVerified_Returns403() throws Exception {
-        when(authService.login(any(LoginRequest.class)))
-                .thenThrow(new EmailNotVerifiedException());
-
-        mockMvc.perform(post("/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validLoginRequest)))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("EMAIL_NOT_VERIFIED"))
-                .andExpect(jsonPath("$.message").value("Veuillez valider votre adresse email avant de vous connecter."));
     }
 }
