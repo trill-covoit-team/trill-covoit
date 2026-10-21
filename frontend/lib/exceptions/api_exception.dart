@@ -1,11 +1,11 @@
-class AuthException implements Exception {
+class ApiException implements Exception {
   final String message;
-  final int? statusCode;
+  final int statusCode;
   final String? errorCode;
 
-  const AuthException({
+  const ApiException({
     required this.message,
-    this.statusCode,
+    required this.statusCode,
     this.errorCode,
   });
 

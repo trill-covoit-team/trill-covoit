@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:trill_covoit/features/auth/providers/auth_provider.dart';
-import 'package:trill_covoit/features/auth/services/auth_api_service.dart';
+import 'package:trill_covoit/services/auth_api_service.dart';
 
 void main() {
   group('AuthProvider', () {
@@ -32,6 +32,7 @@ void main() {
       final success = await provider.register(
         email: 'nouveau@univ.fr',
         password: 'Password123!',
+        termsAccepted: true,
       );
 
       expect(success, isTrue);
@@ -55,6 +56,7 @@ void main() {
       final success = await provider.register(
         email: 'existant@univ.fr',
         password: 'Password123!',
+        termsAccepted: true,
       );
 
       expect(success, isFalse);
@@ -66,11 +68,10 @@ void main() {
         return http.Response(
           jsonEncode({
             'accessToken': 'token-abc',
-            'user': {
-              'userId': 99,
-              'email': 'connecte@univ.fr',
-              'emailVerified': true,
-            },
+            'tokenType': 'Bearer',
+            'userId': 99,
+            'email': 'connecte@univ.fr',
+            'emailVerified': true,
           }),
           200,
           headers: {'content-type': 'application/json'},
@@ -94,7 +95,11 @@ void main() {
       final mockClient = MockClient((request) async {
         return http.Response(
           jsonEncode({
-            'user': {'userId': 1, 'email': 'a@univ.fr', 'emailVerified': true},
+            'accessToken': 'token-xyz',
+            'tokenType': 'Bearer',
+            'userId': 1,
+            'email': 'a@univ.fr',
+            'emailVerified': true,
           }),
           200,
           headers: {'content-type': 'application/json'},

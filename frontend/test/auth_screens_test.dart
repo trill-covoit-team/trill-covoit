@@ -15,7 +15,7 @@ import 'package:trill_covoit/features/auth/screens/home_screen.dart';
 import 'package:trill_covoit/features/auth/screens/landing_screen.dart';
 import 'package:trill_covoit/features/auth/screens/login_register_screen.dart';
 import 'package:trill_covoit/features/auth/screens/verify_email_screen.dart';
-import 'package:trill_covoit/features/auth/services/auth_api_service.dart';
+import 'package:trill_covoit/services/auth_api_service.dart';
 import 'package:trill_covoit/main.dart';
 
 final _emailField = find.byKey(const ValueKey('email'));
@@ -28,7 +28,9 @@ http.Response _message(String message, [int status = 200]) =>
 http.Response _session() => http.Response(
   jsonEncode({
     'accessToken': 'test-token',
-    'user': {'userId': 1, 'email': 'marie@exemple.fr', 'emailVerified': true},
+    'userId': 1,
+    'email': 'marie@exemple.fr',
+    'emailVerified': true,
   }),
   200,
 );

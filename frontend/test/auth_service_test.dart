@@ -1,12 +1,69 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:trill_covoit/features/auth/models/auth_exception.dart';
-import 'package:trill_covoit/features/auth/services/auth_api_service.dart';
+import 'package:trill_covoit/exceptions/api_exception.dart';
+import 'package:trill_covoit/exceptions/auth_exception.dart';
+import 'package:trill_covoit/services/api_client.dart';
+import 'package:trill_covoit/services/auth_api_service.dart';
 
 void main() {
   const baseUrl = 'http://test.local/api';
+
+  group('ApiClient', () {
+    test('Exécute un appel POST et retourne le corps JSON décodé', () async {
+      final mockClient = MockClient((request) async {
+        expect(request.url.toString(), '$baseUrl/test');
+        expect(request.headers['Content-Type'], contains('application/json'));
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['key'], 'value');
+
+        return http.Response(
+          jsonEncode({'success': true}),
+          200,
+          headers: {'content-type': 'application/json'},
+        );
+      });
+
+      final client = ApiClient(client: mockClient, baseUrl: baseUrl);
+      final result = await client.post('/test', body: {'key': 'value'});
+
+      expect(result['success'], isTrue);
+    });
+
+    test('Lève ApiException avec code 408 en cas de timeout', () async {
+      final mockClient = MockClient((request) async {
+        throw TimeoutException('Timeout');
+      });
+
+      final client = ApiClient(client: mockClient, baseUrl: baseUrl);
+
+      expect(
+        () => client.post('/timeout'),
+        throwsA(
+          isA<ApiException>().having((e) => e.statusCode, 'statusCode', 408),
+        ),
+      );
+    });
+
+    test('Lève ApiException avec code 503 en cas d\'erreur réseau (SocketException)', () async {
+      final mockClient = MockClient((request) async {
+        throw const SocketException('Connexion impossible');
+      });
+
+      final client = ApiClient(client: mockClient, baseUrl: baseUrl);
+
+      expect(
+        () => client.post('/socket-error'),
+        throwsA(
+          isA<ApiException>().having((e) => e.statusCode, 'statusCode', 503),
+        ),
+      );
+    });
+  });
 
   group('AuthApiService.register', () {
     test('Retourne le message en cas de succès (201 Created)', () async {
@@ -35,6 +92,7 @@ void main() {
       final result = await service.register(
         email: 'etudiant@univ-tlse3.fr',
         password: 'Password123!',
+        termsAccepted: true,
       );
 
       expect(result, contains('Votre compte a été créé'));
@@ -58,6 +116,7 @@ void main() {
         () => service.register(
           email: 'existant@univ.fr',
           password: 'Password123!',
+          termsAccepted: true,
         ),
         throwsA(
           isA<AuthException>()
@@ -119,18 +178,16 @@ void main() {
   });
 
   group('AuthApiService.login', () {
-    test('Retourne une session active en cas de succès (200 OK)', () async {
+    test('Retourne une session active en cas de succès (200 OK) avec format plat', () async {
       final mockClient = MockClient((request) async {
         expect(request.url.toString(), '$baseUrl/auth/login');
         return http.Response(
           jsonEncode({
             'accessToken': 'jwt-sample-token',
             'tokenType': 'Bearer',
-            'user': {
-              'userId': 1,
-              'email': 'etudiant@univ.fr',
-              'emailVerified': true,
-            },
+            'userId': 1,
+            'email': 'etudiant@univ.fr',
+            'emailVerified': true,
           }),
           200,
           headers: {'content-type': 'application/json'},

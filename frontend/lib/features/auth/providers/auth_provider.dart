@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:trill_covoit/features/auth/models/auth_exception.dart';
-import 'package:trill_covoit/features/auth/models/auth_session.dart';
-import 'package:trill_covoit/features/auth/services/auth_api_service.dart';
+import 'package:trill_covoit/exceptions/auth_exception.dart';
+import 'package:trill_covoit/models/auth_session.dart';
+import 'package:trill_covoit/services/auth_api_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthApiService _apiService;
@@ -36,7 +36,7 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> register({
     required String email,
     required String password,
-    bool termsAccepted = true,
+    required bool termsAccepted,
   }) async {
     _setLoading(true);
     _clearMessagesInternal();
