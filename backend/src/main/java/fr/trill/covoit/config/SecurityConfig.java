@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -32,11 +33,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) {
 
         return http
-                .csrf(csrf -> csrf.ignoringRequestMatchers(
-                        "/auth/register",
-                        "/auth/verify-email",
-                        "/auth/login"
-                ))
+                .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(routes -> routes
                         .requestMatchers(HttpMethod.POST,
                                 "/auth/register",
@@ -55,6 +52,9 @@ public class SecurityConfig {
                         .authenticationEntryPoint(
                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)
                         )
+                )
+                .oauth2ResourceServer(resourceServer -> resourceServer
+                        .jwt(Customizer.withDefaults())
                 )
                 .build();
     }

@@ -31,6 +31,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final SecureRandom secureRandom = new SecureRandom();
+    private final AccessTokenService accessTokenService;
 
     @Transactional
     public MessageResponse register(RegisterRequest request) {
@@ -101,10 +102,14 @@ public class AuthService {
             throw new EmailNotVerifiedException();
         }
 
+        String accessToken = accessTokenService.createAccessToken(principal.getUserId());
+
         return AuthResponse.builder()
                 .userId(principal.getUserId())
                 .email(principal.getEmail())
                 .emailVerified(principal.isEmailVerified())
+                .accessToken(accessToken)
+                .tokenType("Bearer")
                 .message("Connexion réussie.")
                 .build();
     }
