@@ -1,17 +1,18 @@
 package fr.trill.covoit.service;
 
-import fr.trill.covoit.dto.AuthResponse;
-import fr.trill.covoit.dto.LoginRequest;
-import fr.trill.covoit.dto.MessageResponse;
-import fr.trill.covoit.dto.RegisterRequest;
-import fr.trill.covoit.dto.VerifyEmailRequest;
+import fr.trill.covoit.dto.*;
 import fr.trill.covoit.exception.EmailAlreadyUsedException;
 import fr.trill.covoit.exception.EmailNotVerifiedException;
 import fr.trill.covoit.exception.InvalidCredentialsException;
 import fr.trill.covoit.exception.InvalidVerificationCodeException;
 import fr.trill.covoit.model.AppUser;
 import fr.trill.covoit.repository.AppUserRepository;
+import fr.trill.covoit.security.AppUserPrincipal;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,12 +25,13 @@ import java.time.Instant;
 @RequiredArgsConstructor
 public class AuthService {
 
+    private static final int CODE_EXPIRATION_MINUTES = 15;
+    private final AuthenticationManager authenticationManager;
     private final AppUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
-
-    private static final int CODE_EXPIRATION_MINUTES = 15;
     private final SecureRandom secureRandom = new SecureRandom();
+    private final AccessTokenService accessTokenService;
 
     @Transactional
     public MessageResponse register(RegisterRequest request) {
@@ -58,7 +60,7 @@ public class AuthService {
     @Transactional
     public MessageResponse verifyEmail(VerifyEmailRequest request) {
         AppUser user = userRepository.findByEmailIgnoreCase(request.getEmail())
-                .orElseThrow(() -> new InvalidVerificationCodeException());
+                .orElseThrow(InvalidVerificationCodeException::new);
 
         if (user.getVerificationCode() == null
                 || !user.getVerificationCode().equals(request.getCode())
@@ -77,22 +79,36 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
-        AppUser user = userRepository.findByEmailIgnoreCase(request.getEmail())
-                .orElseThrow(() -> new InvalidCredentialsException());
+        Authentication result;
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+        try {
+            result = authenticationManager.authenticate(
+                    UsernamePasswordAuthenticationToken.unauthenticated(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
+        } catch (BadCredentialsException exception) {
             throw new InvalidCredentialsException();
         }
 
-        if (!user.isEmailVerified()) {
+        if (!(result.getPrincipal() instanceof AppUserPrincipal principal)) {
+            throw new IllegalStateException(
+                    "Identité authentifiée absente ou d'un type inattendu."
+            );
+        }
+
+        if (!principal.isEmailVerified()) {
             throw new EmailNotVerifiedException();
         }
 
+        String accessToken = accessTokenService.createAccessToken(principal.getUserId());
+
         return AuthResponse.builder()
-                .userId(user.getUserId())
-                .email(user.getEmail())
-                .emailVerified(user.isEmailVerified())
-                .accessToken("mock-session-" + user.getUserId())
+                .userId(principal.getUserId())
+                .email(principal.getEmail())
+                .emailVerified(principal.isEmailVerified())
+                .accessToken(accessToken)
                 .tokenType("Bearer")
                 .message("Connexion réussie.")
                 .build();
