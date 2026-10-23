@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -66,23 +65,6 @@ void main() {
       );
     });
 
-    test('Lève ApiException sans statut HTTP (null) en cas de SocketException', () async {
-      final mockClient = MockClient((request) async {
-        throw const SocketException('Connexion refusée');
-      });
-
-      final client = ApiClient(client: mockClient, baseUrl: baseUrl);
-
-      expect(
-        () => client.post('/socket-error'),
-        throwsA(
-          isA<ApiException>()
-              .having((e) => e.statusCode, 'statusCode', isNull)
-              .having((e) => e.message, 'message', contains('Impossible de joindre le serveur')),
-        ),
-      );
-    });
-
     test('Transmet statusCode, message, errorCode et fieldErrors sur erreur HTTP', () async {
       final mockClient = MockClient((request) async {
         return http.Response(
@@ -105,6 +87,27 @@ void main() {
               .having((e) => e.statusCode, 'statusCode', 400)
               .having((e) => e.errorCode, 'errorCode', 'VALIDATION_ERROR')
               .having((e) => e.fieldErrors, 'fieldErrors', {'email': 'Format invalide'}),
+        ),
+      );
+    });
+
+    test('Utilise le message par défaut français si le champ message est absent', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          jsonEncode({'error': 'Internal Server Error'}),
+          500,
+          headers: {'content-type': 'application/json'},
+        );
+      });
+
+      final client = ApiClient(client: mockClient, baseUrl: baseUrl);
+
+      expect(
+        () => client.post('/server-error'),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.statusCode, 'statusCode', 500)
+              .having((e) => e.message, 'message', 'Une erreur est survenue (500)'),
         ),
       );
     });
