@@ -717,7 +717,7 @@ void main() {
           tester,
           (_) async {
             count++;
-            if (network) throw const SocketException('Hors ligne');
+            if (network) throw http.ClientException('Hors ligne');
             return _message('Détail technique confidentiel', 500);
           },
           screen: verification
