@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:trill_covoit/core/constants/api_constants.dart';
@@ -10,9 +9,10 @@ class ApiClient {
   final http.Client _client;
   final String baseUrl;
 
-  ApiClient({http.Client? client, String? baseUrl})
-      : _client = client ?? http.Client(),
-        baseUrl = baseUrl ?? ApiConstants.baseUrl;
+  ApiClient({
+    required http.Client client,
+    required this.baseUrl,
+  }) : _client = client;
 
   static const _defaultHeaders = {
     'Content-Type': 'application/json',
@@ -27,12 +27,13 @@ class ApiClient {
   }) async {
     final uri = Uri.parse('$baseUrl$path');
     final combinedHeaders = {..._defaultHeaders, ...?headers};
+    final encodedBody = body != null ? jsonEncode(body) : null;
 
     final response = await _sendRequest(
       () => _client.post(
         uri,
         headers: combinedHeaders,
-        body: body != null ? jsonEncode(body) : null,
+        body: encodedBody,
       ),
     );
 
@@ -45,44 +46,34 @@ class ApiClient {
     } on TimeoutException {
       throw const ApiException(
         message: 'Le délai d’attente du serveur a expiré. Veuillez réessayer.',
-        statusCode: 408,
       );
-    } on SocketException {
+    } on http.ClientException {
       throw const ApiException(
         message: 'Impossible de joindre le serveur. Vérifiez votre connexion.',
-        statusCode: 503,
-      );
-    } catch (e) {
-      if (e is ApiException) rethrow;
-      throw ApiException(
-        message: 'Erreur réseau inattendue : $e',
-        statusCode: 500,
       );
     }
   }
 
   Map<String, dynamic> _handleResponse(http.Response response) {
-    Map<String, dynamic> body = {};
-    if (response.body.isNotEmpty) {
-      try {
-        final decoded = jsonDecode(response.body);
-        if (decoded is Map<String, dynamic>) {
-          body = decoded;
-        }
-      } catch (_) {}
-    }
+    final decoded = response.body.isNotEmpty
+        ? jsonDecode(response.body) as Map<String, dynamic>
+        : <String, dynamic>{};
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      return body;
+      return decoded;
     }
 
-    final message = body['message'] ?? body['error'] ?? 'Une erreur est survenue (${response.statusCode})';
-    final code = body['code'] as String?;
+    final message = decoded['message'] ??
+        decoded['error'] ??
+        'Une erreur est survenue (${response.statusCode})';
+    final code = decoded['code'] as String?;
+    final fieldErrors = decoded['fieldErrors'] as Map<String, dynamic>?;
 
     throw ApiException(
       message: message.toString(),
       statusCode: response.statusCode,
       errorCode: code,
+      fieldErrors: fieldErrors,
     );
   }
 }
