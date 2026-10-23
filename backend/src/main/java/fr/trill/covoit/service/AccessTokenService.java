@@ -9,6 +9,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -18,18 +19,17 @@ import java.util.List;
 public class AccessTokenService {
 
     private final JwtEncoder jwtEncoder;
+    private final Clock clock;
 
     @Value("${app.jwt.issuer}")
     private String issuer;
-
     @Value("${app.jwt.audience}")
     private String audience;
-
     @Value("${app.jwt.access-token-ttl}")
     private Duration accessTokenTtl;
 
     public String createAccessToken(Long userId) {
-        Instant now = Instant.now();
+        Instant now = clock.instant();
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer(issuer)

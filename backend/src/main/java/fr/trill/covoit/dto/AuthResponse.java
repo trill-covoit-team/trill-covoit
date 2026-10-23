@@ -16,5 +16,6 @@ public class AuthResponse {
     private boolean emailVerified;
     private String accessToken;
     private String tokenType;
+    private String refreshToken;
     private String message;
 }
