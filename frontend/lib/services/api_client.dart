@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:trill_covoit/core/constants/api_constants.dart';
@@ -48,6 +49,10 @@ class ApiClient {
         message: 'Le délai d’attente du serveur a expiré. Veuillez réessayer.',
       );
     } on http.ClientException {
+      throw const ApiException(
+        message: 'Impossible de joindre le serveur. Vérifiez votre connexion.',
+      );
+    } on SocketException {
       throw const ApiException(
         message: 'Impossible de joindre le serveur. Vérifiez votre connexion.',
       );

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -57,6 +58,23 @@ void main() {
 
       expect(
         () => client.post('/client-error'),
+        throwsA(
+          isA<ApiException>()
+              .having((e) => e.statusCode, 'statusCode', isNull)
+              .having((e) => e.message, 'message', contains('Impossible de joindre le serveur')),
+        ),
+      );
+    });
+
+    test('Lève ApiException sans statut HTTP (null) en cas de SocketException', () async {
+      final mockClient = MockClient((request) async {
+        throw const SocketException('Connexion refusée');
+      });
+
+      final client = ApiClient(client: mockClient, baseUrl: baseUrl);
+
+      expect(
+        () => client.post('/socket-error'),
         throwsA(
           isA<ApiException>()
               .having((e) => e.statusCode, 'statusCode', isNull)
