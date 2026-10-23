@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:trill_covoit/core/constants/api_constants.dart';
@@ -52,10 +51,6 @@ class ApiClient {
       throw const ApiException(
         message: 'Impossible de joindre le serveur. Vérifiez votre connexion.',
       );
-    } on SocketException {
-      throw const ApiException(
-        message: 'Impossible de joindre le serveur. Vérifiez votre connexion.',
-      );
     }
   }
 
@@ -69,7 +64,6 @@ class ApiClient {
     }
 
     final message = decoded['message'] ??
-        decoded['error'] ??
         'Une erreur est survenue (${response.statusCode})';
     final code = decoded['code'] as String?;
     final fieldErrors = decoded['fieldErrors'] as Map<String, dynamic>?;
