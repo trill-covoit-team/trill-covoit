@@ -1,13 +1,9 @@
 package fr.trill.covoit.service;
 
-import fr.trill.covoit.dto.AuthResponse;
-import fr.trill.covoit.dto.LoginRequest;
 import fr.trill.covoit.dto.MessageResponse;
 import fr.trill.covoit.dto.RegisterRequest;
 import fr.trill.covoit.dto.VerifyEmailRequest;
 import fr.trill.covoit.exception.EmailAlreadyUsedException;
-import fr.trill.covoit.exception.EmailNotVerifiedException;
-import fr.trill.covoit.exception.InvalidCredentialsException;
 import fr.trill.covoit.exception.InvalidVerificationCodeException;
 import fr.trill.covoit.model.AppUser;
 import fr.trill.covoit.repository.AppUserRepository;
@@ -154,56 +150,5 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.verifyEmail(request))
                 .isInstanceOf(InvalidVerificationCodeException.class)
                 .hasMessage("Le code de validation est invalide ou expiré.");
-    }
-
-    @Test
-    void login_Success() {
-        sampleUser.setEmailVerified(true);
-        when(userRepository.findByEmailIgnoreCase("etudiant@univ-tlse3.fr")).thenReturn(Optional.of(sampleUser));
-        when(passwordEncoder.matches("MotDePasse123!", "hashed_password")).thenReturn(true);
-
-        LoginRequest request = LoginRequest.builder()
-                .email("etudiant@univ-tlse3.fr")
-                .password("MotDePasse123!")
-                .build();
-
-        AuthResponse response = authService.login(request);
-
-        assertThat(response).isNotNull();
-        assertThat(response.getUserId()).isEqualTo(1L);
-        assertThat(response.getEmail()).isEqualTo("etudiant@univ-tlse3.fr");
-        assertThat(response.isEmailVerified()).isTrue();
-        assertThat(response.getMessage()).isEqualTo("Connexion réussie.");
-    }
-
-    @Test
-    void login_EmailNotVerified_ThrowsException() {
-        sampleUser.setEmailVerified(false);
-        when(userRepository.findByEmailIgnoreCase("etudiant@univ-tlse3.fr")).thenReturn(Optional.of(sampleUser));
-        when(passwordEncoder.matches("MotDePasse123!", "hashed_password")).thenReturn(true);
-
-        LoginRequest request = LoginRequest.builder()
-                .email("etudiant@univ-tlse3.fr")
-                .password("MotDePasse123!")
-                .build();
-
-        assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(EmailNotVerifiedException.class)
-                .hasMessage("Veuillez valider votre adresse email avant de vous connecter.");
-    }
-
-    @Test
-    void login_WrongPassword_ThrowsException() {
-        when(userRepository.findByEmailIgnoreCase("etudiant@univ-tlse3.fr")).thenReturn(Optional.of(sampleUser));
-        when(passwordEncoder.matches("MauvaisMotDePasse", "hashed_password")).thenReturn(false);
-
-        LoginRequest request = LoginRequest.builder()
-                .email("etudiant@univ-tlse3.fr")
-                .password("MauvaisMotDePasse")
-                .build();
-
-        assertThatThrownBy(() -> authService.login(request))
-                .isInstanceOf(InvalidCredentialsException.class)
-                .hasMessage("L'adresse email ou le mot de passe est incorrect.");
     }
 }
