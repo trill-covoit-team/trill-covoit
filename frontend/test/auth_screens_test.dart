@@ -15,6 +15,7 @@ import 'package:trill_covoit/features/auth/screens/home_screen.dart';
 import 'package:trill_covoit/features/auth/screens/landing_screen.dart';
 import 'package:trill_covoit/features/auth/screens/login_register_screen.dart';
 import 'package:trill_covoit/features/auth/screens/verify_email_screen.dart';
+import 'package:trill_covoit/services/api_client.dart';
 import 'package:trill_covoit/services/auth_api_service.dart';
 import 'package:trill_covoit/main.dart';
 
@@ -41,8 +42,9 @@ Future<AuthProvider> _pumpApp(
   Widget? screen,
 }) async {
   final client = MockClient(handler);
+  final apiClient = ApiClient(client: client, baseUrl: 'http://test.local');
   final auth = AuthProvider(
-    apiService: AuthApiService(client: client, baseUrl: 'http://test.local'),
+    apiService: AuthApiService(apiClient: apiClient),
   );
   addTearDown(auth.dispose);
   addTearDown(client.close);

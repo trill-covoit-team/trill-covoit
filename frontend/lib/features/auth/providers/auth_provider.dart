@@ -1,13 +1,22 @@
 import 'package:flutter/foundation.dart';
-import 'package:trill_covoit/exceptions/auth_exception.dart';
+import 'package:http/http.dart' as http;
+import 'package:trill_covoit/core/constants/api_constants.dart';
+import 'package:trill_covoit/exceptions/api_exception.dart';
 import 'package:trill_covoit/models/auth_session.dart';
+import 'package:trill_covoit/services/api_client.dart';
 import 'package:trill_covoit/services/auth_api_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthApiService _apiService;
 
   AuthProvider({AuthApiService? apiService})
-      : _apiService = apiService ?? AuthApiService();
+      : _apiService = apiService ??
+            AuthApiService(
+              apiClient: ApiClient(
+                client: http.Client(),
+                baseUrl: ApiConstants.baseUrl,
+              ),
+            );
 
   AuthSession? _currentSession;
   bool _isLoading = false;
@@ -51,7 +60,7 @@ class AuthProvider extends ChangeNotifier {
       _pendingVerificationEmail = email;
       _setLoading(false);
       return true;
-    } on AuthException catch (e) {
+    } on ApiException catch (e) {
       _errorMessage = e.message;
       _setLoading(false);
       return false;
@@ -74,7 +83,7 @@ class AuthProvider extends ChangeNotifier {
       _successMessage = msg;
       _setLoading(false);
       return true;
-    } on AuthException catch (e) {
+    } on ApiException catch (e) {
       _errorMessage = e.message;
       _setLoading(false);
       return false;
@@ -98,7 +107,7 @@ class AuthProvider extends ChangeNotifier {
       _pendingVerificationEmail = null;
       _setLoading(false);
       return true;
-    } on AuthException catch (e) {
+    } on ApiException catch (e) {
       _errorMessage = e.message;
       if (e.statusCode == 403) {
         _pendingVerificationEmail = email;

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:trill_covoit/features/auth/providers/auth_provider.dart';
+import 'package:trill_covoit/services/api_client.dart';
 import 'package:trill_covoit/services/auth_api_service.dart';
 
 void main() {
@@ -26,7 +27,8 @@ void main() {
         );
       });
 
-      final service = AuthApiService(client: mockClient, baseUrl: 'http://test.local');
+      final apiClient = ApiClient(client: mockClient, baseUrl: 'http://test.local');
+      final service = AuthApiService(apiClient: apiClient);
       final provider = AuthProvider(apiService: service);
 
       final success = await provider.register(
@@ -50,7 +52,8 @@ void main() {
         );
       });
 
-      final service = AuthApiService(client: mockClient, baseUrl: 'http://test.local');
+      final apiClient = ApiClient(client: mockClient, baseUrl: 'http://test.local');
+      final service = AuthApiService(apiClient: apiClient);
       final provider = AuthProvider(apiService: service);
 
       final success = await provider.register(
@@ -78,7 +81,8 @@ void main() {
         );
       });
 
-      final service = AuthApiService(client: mockClient, baseUrl: 'http://test.local');
+      final apiClient = ApiClient(client: mockClient, baseUrl: 'http://test.local');
+      final service = AuthApiService(apiClient: apiClient);
       final provider = AuthProvider(apiService: service);
 
       final success = await provider.login(
@@ -106,7 +110,8 @@ void main() {
         );
       });
 
-      final service = AuthApiService(client: mockClient, baseUrl: 'http://test.local');
+      final apiClient = ApiClient(client: mockClient, baseUrl: 'http://test.local');
+      final service = AuthApiService(apiClient: apiClient);
       final provider = AuthProvider(apiService: service);
 
       await provider.login(email: 'a@univ.fr', password: 'Password123!');
