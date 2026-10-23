@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trill_covoit/exceptions/api_exception.dart';
-import 'package:trill_covoit/exceptions/auth_exception.dart';
 import 'package:trill_covoit/models/auth_session.dart';
 import 'package:trill_covoit/models/user.dart';
 
@@ -62,7 +61,7 @@ void main() {
       );
     });
 
-    test('Rejette un JSON sans emailVerified ou non booléen', () {
+    test('Rejette un JSON sans emailVerified booléen', () {
       expect(
         () => User.fromJson({
           'userId': 1,
@@ -75,23 +74,33 @@ void main() {
         () => User.fromJson({
           'userId': 1,
           'email': 'test@univ.fr',
-          'emailVerified': 'yes',
+          'emailVerified': 'true',
         }),
         throwsA(isA<FormatException>()),
       );
     });
 
+    test('Gère les champs optionnels absents', () {
+      final user = User.fromJson({
+        'userId': 1,
+        'email': 'minimal@univ.fr',
+        'emailVerified': false,
+      });
+
+      expect(user.firstName, isNull);
+      expect(user.lastName, isNull);
+    });
+
     test('Sérialise vers un Map JSON valide', () {
       const user = User(
-        userId: 1,
+        userId: 10,
         email: 'test@univ.fr',
         emailVerified: true,
         firstName: 'Alice',
       );
 
       final map = user.toJson();
-
-      expect(map['userId'], 1);
+      expect(map['userId'], 10);
       expect(map['email'], 'test@univ.fr');
       expect(map['emailVerified'], isTrue);
       expect(map['firstName'], 'Alice');
@@ -100,14 +109,14 @@ void main() {
   });
 
   group('AuthSession', () {
-    test('Désérialise depuis une réponse plate contenant token et utilisateur', () {
+    test('Désérialise correctement une session valide avec utilisateur à la racine', () {
       final json = {
         'accessToken': 'jwt-token-123',
         'tokenType': 'Bearer',
         'userId': 5,
-        'email': 'session@univ.fr',
+        'email': 'user@univ.fr',
         'emailVerified': true,
-        'firstName': 'Marie',
+        'firstName': 'Bob',
       };
 
       final session = AuthSession.fromJson(json);
@@ -115,16 +124,17 @@ void main() {
       expect(session.accessToken, 'jwt-token-123');
       expect(session.tokenType, 'Bearer');
       expect(session.user.userId, 5);
-      expect(session.user.email, 'session@univ.fr');
-      expect(session.user.firstName, 'Marie');
-      expect(session.isAuthenticated, isTrue);
+      expect(session.user.email, 'user@univ.fr');
+      expect(session.user.emailVerified, isTrue);
+      expect(session.user.firstName, 'Bob');
     });
 
     test('Rejette un JSON avec accessToken manquant ou vide', () {
       expect(
         () => AuthSession.fromJson({
-          'userId': 10,
-          'email': 'flat@univ.fr',
+          'tokenType': 'Bearer',
+          'userId': 1,
+          'email': 'a@univ.fr',
           'emailVerified': true,
         }),
         throwsA(isA<FormatException>()),
@@ -133,8 +143,9 @@ void main() {
       expect(
         () => AuthSession.fromJson({
           'accessToken': '   ',
-          'userId': 10,
-          'email': 'flat@univ.fr',
+          'tokenType': 'Bearer',
+          'userId': 1,
+          'email': 'a@univ.fr',
           'emailVerified': true,
         }),
         throwsA(isA<FormatException>()),
@@ -142,29 +153,29 @@ void main() {
     });
   });
 
-  group('Exceptions', () {
-    test('ApiException contient le message, le status code et le code d\'erreur', () {
+  group('ApiException', () {
+    test('ApiException contient message, statusCode optionnel, code d\'erreur et fieldErrors', () {
       const ex = ApiException(
-        message: 'Erreur réseau',
-        statusCode: 503,
-        errorCode: 'SERVICE_UNAVAILABLE',
+        message: 'Données invalides',
+        statusCode: 400,
+        errorCode: 'VALIDATION_ERROR',
+        fieldErrors: {'email': 'Format invalide'},
       );
 
-      expect(ex.toString(), 'Erreur réseau');
-      expect(ex.statusCode, 503);
-      expect(ex.errorCode, 'SERVICE_UNAVAILABLE');
+      expect(ex.toString(), 'Données invalides');
+      expect(ex.statusCode, 400);
+      expect(ex.errorCode, 'VALIDATION_ERROR');
+      expect(ex.fieldErrors, {'email': 'Format invalide'});
     });
 
-    test('AuthException hérite de ApiException', () {
-      const ex = AuthException(
-        message: 'Identifiants invalides',
-        statusCode: 401,
-        errorCode: 'INVALID_CREDENTIALS',
+    test('ApiException supporte statusCode null pour les erreurs réseau', () {
+      const ex = ApiException(
+        message: 'Délai d\'attente expiré',
       );
 
-      expect(ex, isA<ApiException>());
-      expect(ex.statusCode, 401);
-      expect(ex.errorCode, 'INVALID_CREDENTIALS');
+      expect(ex.statusCode, isNull);
+      expect(ex.errorCode, isNull);
+      expect(ex.fieldErrors, isNull);
     });
   });
 }

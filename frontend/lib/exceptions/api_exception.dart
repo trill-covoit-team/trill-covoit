@@ -1,12 +1,14 @@
 class ApiException implements Exception {
   final String message;
-  final int statusCode;
+  final int? statusCode;
   final String? errorCode;
+  final Map<String, dynamic>? fieldErrors;
 
   const ApiException({
     required this.message,
-    required this.statusCode,
+    this.statusCode,
     this.errorCode,
+    this.fieldErrors,
   });
 
   @override
