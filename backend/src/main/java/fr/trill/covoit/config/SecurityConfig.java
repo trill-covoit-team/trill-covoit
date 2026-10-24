@@ -39,7 +39,8 @@ public class SecurityConfig {
                                 "/auth/register",
                                 "/auth/verify-email",
                                 "/auth/login",
-                                "/auth/refresh"
+                                "/auth/refresh",
+                                "/auth/logout"
                         ).permitAll()
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .anyRequest().authenticated()

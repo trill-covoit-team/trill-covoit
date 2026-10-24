@@ -23,6 +23,7 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -194,6 +195,25 @@ public class AuthService {
                 .tokenType("Bearer")
                 .refreshToken(newRefreshToken)
                 .build();
+    }
+
+    @Transactional
+    public void logout(RefreshTokenRequest request) {
+        String tokenHash = refreshTokenService.hashRefreshToken(request.getRefreshToken());
+
+        Optional<Long> sessionId = refreshTokenRepository
+                .findSessionIdByTokenHash(tokenHash);
+        if (sessionId.isEmpty()) return;
+
+        Optional<AuthSession> optionalSession = authSessionRepository
+                .findBySessionId(sessionId.get());
+        if (optionalSession.isEmpty()) return;
+
+        AuthSession session = optionalSession.get();
+        if (session.getRevokedAt() != null) return;
+
+        session.setRevokedAt(clock.instant());
+        authSessionRepository.save(session);
     }
 
     private String generateVerificationCode() {

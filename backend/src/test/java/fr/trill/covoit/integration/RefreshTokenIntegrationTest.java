@@ -198,6 +198,58 @@ class RefreshTokenIntegrationTest {
         assertThat(refreshTokenRepository.count()).isZero();
     }
 
+    @Test
+    @DisplayName("La déconnexion bloque le renouvellement de sa session et préserve l'autre connexion")
+    void logout_WithValidToken_RevokesOnlyItsSession() throws Exception {
+        AppUser user = createVerifiedUser();
+        // Deux logins du même compte représentent deux connexions indépendantes.
+        AuthResponse firstLoginResponse = loginAndReadResponse(user);
+        AuthResponse secondLoginResponse = loginAndReadResponse(user);
+
+        Long firstSessionId = findStoredRefreshToken(firstLoginResponse.getRefreshToken()).getSessionId();
+        Long secondSessionId = findStoredRefreshToken(secondLoginResponse.getRefreshToken()).getSessionId();
+        assertThat(secondSessionId).isNotEqualTo(firstSessionId);
+
+        sendLogoutRequest(firstLoginResponse.getRefreshToken())
+                .andExpect(status().isNoContent());
+
+        // On relit la base après la réponse pour vérifier que la révocation a été enregistrée.
+        AuthSession revokedSession = authSessionRepository.findById(firstSessionId).orElseThrow();
+        assertThat(revokedSession.getRevokedAt()).isEqualTo(testStartTime);
+        refreshAndExpectUnauthorized(firstLoginResponse.getRefreshToken());
+
+        // Un nouvel appel plus tard doit conserver la date de la première révocation.
+        when(clock.instant()).thenReturn(testStartTime.plus(Duration.ofMinutes(1)));
+        sendLogoutRequest(firstLoginResponse.getRefreshToken())
+                .andExpect(status().isNoContent());
+
+        AuthSession sessionAfterRepeatedLogout = authSessionRepository.findById(firstSessionId).orElseThrow();
+        assertThat(sessionAfterRepeatedLogout.getRevokedAt()).isEqualTo(testStartTime);
+
+        JsonNode otherSessionRefreshResponse = refreshAndExpectSuccess(secondLoginResponse.getRefreshToken());
+        assertThat(jwtDecoder.decode(otherSessionRefreshResponse.get("accessToken").asString()).getSubject())
+                .isEqualTo(user.getUserId().toString());
+        assertThat(authSessionRepository.findById(secondSessionId).orElseThrow().getRevokedAt()).isNull();
+
+        // Le logout empêche les renouvellements sans invalider le JWT déjà reçu.
+        Jwt existingAccessToken = jwtDecoder.decode(firstLoginResponse.getAccessToken());
+        assertThat(existingAccessToken.getSubject()).isEqualTo(user.getUserId().toString());
+        assertThat(existingAccessToken.getExpiresAt()).isEqualTo(testStartTime.plus(Duration.ofMinutes(15)));
+    }
+
+    @Test
+    @DisplayName("La déconnexion refuse un refresh token vide")
+    void logout_WithBlankToken_Returns400() throws Exception {
+        sendLogoutRequest("")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.fieldErrors.refreshToken")
+                        .value("Le refresh token est obligatoire."));
+
+        assertThat(authSessionRepository.count()).isZero();
+        assertThat(refreshTokenRepository.count()).isZero();
+    }
+
     private AppUser createVerifiedUser() {
         return userRepository.saveAndFlush(AppUser.builder()
                 .email("refresh@univ-tlse3.fr")
@@ -224,6 +276,13 @@ class RefreshTokenIntegrationTest {
 
     private ResultActions sendRefreshRequest(String refreshToken) throws Exception {
         return mockMvc.perform(post("/auth/refresh")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of("refreshToken", refreshToken))));
+    }
+
+    private ResultActions sendLogoutRequest(String refreshToken) throws Exception {
+        // La déconnexion doit fonctionner même sans access token valide.
+        return mockMvc.perform(post("/auth/logout")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Map.of("refreshToken", refreshToken))));
     }
