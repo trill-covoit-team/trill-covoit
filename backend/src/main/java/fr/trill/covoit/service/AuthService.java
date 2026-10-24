@@ -56,7 +56,7 @@ public class AuthService {
         AppUser user = AppUser.builder()
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .termsAccepted(request.isTermsAccepted())
+                .termsAccepted(request.getTermsAccepted())
                 .emailVerified(false)
                 .verificationCode(code)
                 .verificationCodeExpiresAt(expiresAt)

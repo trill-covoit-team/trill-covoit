@@ -5,6 +5,7 @@ import fr.trill.covoit.dto.RegisterRequest;
 import fr.trill.covoit.dto.VerifyEmailRequest;
 import fr.trill.covoit.exception.AuthExceptionHandler;
 import fr.trill.covoit.exception.EmailAlreadyUsedException;
+import fr.trill.covoit.exception.GlobalExceptionHandler;
 import fr.trill.covoit.exception.InvalidVerificationCodeException;
 import fr.trill.covoit.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +42,7 @@ class AuthControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(authController)
-                .setControllerAdvice(new AuthExceptionHandler())
+                .setControllerAdvice(new AuthExceptionHandler(), new GlobalExceptionHandler())
                 .build();
 
         validRegisterRequest = RegisterRequest.builder()
