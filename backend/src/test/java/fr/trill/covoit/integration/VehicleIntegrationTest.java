@@ -24,6 +24,7 @@ import tools.jackson.databind.node.ObjectNode;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -138,6 +139,59 @@ class VehicleIntegrationTest {
                 .andExpect(status().isUnauthorized());
 
         assertThat(vehicleRepository.count()).isZero();
+    }
+
+    @Test
+    @DisplayName("La liste contient uniquement les véhicules actifs de l'utilisateur, par identifiant croissant")
+    void getUserVehicles_WithMixedVehicles_ReturnsOnlyActiveVehiclesForCurrentUser() throws Exception {
+        AppUser otherUser = createVerifiedUser("autre@univ-tlse3.fr");
+        AppUser owner = createVerifiedUser("conducteur@univ-tlse3.fr");
+        Vehicle firstVehicle = createVehicle(owner, "Renault", "Clio", 4, true);
+        createVehicle(owner, "Renault", "Megane", 4, false);
+        createVehicle(otherUser, "Peugeot", "208", 3, true);
+        Vehicle secondVehicle = createVehicle(owner, "Toyota", "Yaris", 3, true);
+        String accessToken = accessTokenService.createAccessToken(owner.getUserId());
+
+        mockMvc.perform(get(VEHICLES_ENDPOINT)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].vehicleId").value(firstVehicle.getVehicleId()))
+                .andExpect(jsonPath("$[0].brand").value("Renault"))
+                .andExpect(jsonPath("$[0].model").value("Clio"))
+                .andExpect(jsonPath("$[0].passengerCapacity").value(4))
+                .andExpect(jsonPath("$[1].vehicleId").value(secondVehicle.getVehicleId()))
+                .andExpect(jsonPath("$[1].brand").value("Toyota"))
+                .andExpect(jsonPath("$[1].model").value("Yaris"))
+                .andExpect(jsonPath("$[1].passengerCapacity").value(3));
+    }
+
+    @Test
+    @DisplayName("Un utilisateur sans véhicule actif reçoit une liste vide")
+    void getUserVehicles_WithoutActiveVehicles_Returns200AndEmptyList() throws Exception {
+        AppUser owner = createVerifiedUser("conducteur@univ-tlse3.fr");
+        AppUser otherUser = createVerifiedUser("autre@univ-tlse3.fr");
+        createVehicle(owner, "Renault", "Clio", 4, false);
+        createVehicle(otherUser, "Peugeot", "208", 3, true);
+        String accessToken = accessTokenService.createAccessToken(owner.getUserId());
+
+        mockMvc.perform(get(VEHICLES_ENDPOINT)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    private Vehicle createVehicle(AppUser owner, String brand, String model,
+                                  int passengerCapacity, boolean active) {
+        return vehicleRepository.saveAndFlush(Vehicle.builder()
+                .userId(owner.getUserId())
+                .brand(brand)
+                .model(model)
+                .passengerCapacity(passengerCapacity)
+                .active(active)
+                .build());
     }
 
     private AppUser createVerifiedUser(String email) {
