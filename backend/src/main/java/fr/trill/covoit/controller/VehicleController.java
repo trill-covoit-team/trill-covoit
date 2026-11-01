@@ -1,6 +1,7 @@
 package fr.trill.covoit.controller;
 
 import fr.trill.covoit.dto.CreateVehicleRequest;
+import fr.trill.covoit.dto.UpdateVehicleRequest;
 import fr.trill.covoit.dto.VehicleResponse;
 import fr.trill.covoit.service.VehicleService;
 import jakarta.validation.Valid;
@@ -32,6 +33,15 @@ public class VehicleController {
     public ResponseEntity<List<VehicleResponse>> getUserVehicles(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         List<VehicleResponse> response = vehicleService.getUserVehicles(userId);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @PatchMapping("/{vehicleId}")
+    public ResponseEntity<VehicleResponse> updateVehicle(@AuthenticationPrincipal Jwt jwt,
+                                                         @PathVariable Long vehicleId,
+                                                         @Valid @RequestBody UpdateVehicleRequest request) {
+        String userId = jwt.getSubject();
+        VehicleResponse response = vehicleService.updateVehicle(userId, vehicleId, request);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

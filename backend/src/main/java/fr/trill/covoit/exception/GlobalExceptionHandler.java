@@ -8,6 +8,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import tools.jackson.databind.exc.InvalidNullException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -17,7 +18,19 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidRequestBody() {
+    public ResponseEntity<ErrorResponse> handleInvalidRequestBody(HttpMessageNotReadableException ex) {
+        // Un null refusé par Jackson est présenté comme une erreur de validation du champ.
+        if (ex.getMostSpecificCause() instanceof InvalidNullException invalidNull
+                && invalidNull.getPropertyName() != null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ErrorResponse.builder()
+                            .code("VALIDATION_ERROR")
+                            .message("Certaines informations sont invalides.")
+                            .fieldErrors(Map.of(invalidNull.getPropertyName().getSimpleName(),
+                                    "Ce champ ne peut pas être null."))
+                            .build());
+        }
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse("INVALID_REQUEST_BODY", "Le corps de la requête est absent ou invalide."));
     }

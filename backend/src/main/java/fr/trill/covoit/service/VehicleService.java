@@ -1,8 +1,14 @@
 package fr.trill.covoit.service;
 
 import fr.trill.covoit.dto.CreateVehicleRequest;
+import fr.trill.covoit.dto.UpdateVehicleRequest;
 import fr.trill.covoit.dto.VehicleResponse;
+import fr.trill.covoit.exception.EmptyVehicleUpdateException;
+import fr.trill.covoit.exception.VehicleCapacityConflictException;
+import fr.trill.covoit.exception.VehicleNotFoundException;
 import fr.trill.covoit.model.Vehicle;
+import fr.trill.covoit.model.enums.TripStatus;
+import fr.trill.covoit.repository.TripRepository;
 import fr.trill.covoit.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,6 +21,7 @@ import java.util.List;
 public class VehicleService {
 
     private final VehicleRepository vehicleRepository;
+    private final TripRepository tripRepository;
 
     private static VehicleResponse toResponse(Vehicle vehicle) {
         return VehicleResponse.builder()
@@ -46,5 +53,39 @@ public class VehicleService {
         return vehicles.stream()
                 .map(VehicleService::toResponse)
                 .toList();
+    }
+
+    @Transactional
+    public VehicleResponse updateVehicle(String userId, Long vehicleId, UpdateVehicleRequest request) {
+        if (request.getBrand() == null && request.getModel() == null && request.getPassengerCapacity() == null) {
+            throw new EmptyVehicleUpdateException();
+        }
+
+        Vehicle vehicle = vehicleRepository.findByVehicleIdAndUserIdAndActiveTrue(vehicleId, Long.valueOf(userId))
+                .orElseThrow(VehicleNotFoundException::new);
+
+        // Le véhicule doit conserver assez de places pour les trajets publiés.
+        // Les trajets terminés ou annulés ne bloquent pas la modification du véhicule.
+        if (request.getPassengerCapacity() != null
+                && tripRepository.existsByVehicleIdAndStatusAndOfferedSeatsGreaterThan(
+                vehicleId, TripStatus.PUBLISHED, request.getPassengerCapacity())) {
+            throw new VehicleCapacityConflictException();
+        }
+
+        if (request.getBrand() != null) {
+            vehicle.setBrand(request.getBrand());
+        }
+
+        if (request.getModel() != null) {
+            vehicle.setModel(request.getModel());
+        }
+
+        if (request.getPassengerCapacity() != null) {
+            vehicle.setPassengerCapacity(request.getPassengerCapacity());
+        }
+
+        Vehicle updatedVehicle = vehicleRepository.save(vehicle);
+
+        return VehicleService.toResponse(updatedVehicle);
     }
 }
