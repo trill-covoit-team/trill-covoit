@@ -31,8 +31,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:vehicle-testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL"
@@ -355,6 +354,80 @@ class VehicleIntegrationTest {
                 .orElseThrow()
                 .getModel())
                 .isEqualTo("Clio");
+    }
+
+    @Test
+    @DisplayName("La suppression désactive le véhicule et conserve ses trajets terminés ou annulés")
+    void deleteVehicle_WithCompletedAndCancelledTrips_Returns204AndDeactivatesVehicle() throws Exception {
+        AppUser owner = createVerifiedUser("conducteur@univ-tlse3.fr");
+
+        Vehicle vehicle = createVehicle(owner, "Renault", "Clio", 4, true);
+
+        Trip completedTrip = createTrip(vehicle, TripStatus.COMPLETED);
+        Trip cancelledTrip = createTrip(vehicle, TripStatus.CANCELLED);
+
+        String accessToken = accessTokenService.createAccessToken(owner.getUserId());
+
+        mockMvc.perform(delete(VEHICLES_ENDPOINT + "/" + vehicle.getVehicleId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
+
+        Vehicle savedVehicle = vehicleRepository.findById(vehicle.getVehicleId())
+                .orElseThrow();
+        assertThat(savedVehicle.isActive()).isFalse();
+
+        assertThat(tripRepository.findAll())
+                .extracting(Trip::getTripId)
+                .containsExactlyInAnyOrder(completedTrip.getTripId(), cancelledTrip.getTripId());
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(UnavailableVehicle.class)
+    @DisplayName("Un véhicule absent, inactif ou appartenant à un autre utilisateur ne peut pas être supprimé")
+    void deleteVehicle_WithUnavailableVehicle_Returns404WithoutChanges(
+            UnavailableVehicle unavailable) throws Exception {
+        AppUser owner = createVerifiedUser("conducteur@univ-tlse3.fr");
+        AppUser vehicleOwner = unavailable == UnavailableVehicle.OTHER_OWNER
+                ? createVerifiedUser("autre@univ-tlse3.fr") : owner;
+
+        Vehicle vehicle = createVehicle(vehicleOwner, "Renault", "Clio", 4,
+                unavailable != UnavailableVehicle.INACTIVE);
+        long vehicleId = unavailable == UnavailableVehicle.MISSING
+                ? Long.MAX_VALUE : vehicle.getVehicleId();
+
+        String accessToken = accessTokenService.createAccessToken(owner.getUserId());
+
+        mockMvc.perform(delete(VEHICLES_ENDPOINT + "/" + vehicleId)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("VEHICLE_NOT_FOUND"));
+
+        Vehicle unchangedVehicle = vehicleRepository.findById(vehicle.getVehicleId())
+                .orElseThrow();
+        assertThat(unchangedVehicle.isActive()).isEqualTo(vehicle.isActive());
+    }
+
+    @Test
+    @DisplayName("Un trajet publié bloque la suppression du véhicule")
+    void deleteVehicle_WithPublishedTrip_Returns409WithoutDeactivatingVehicle() throws Exception {
+        AppUser owner = createVerifiedUser("conducteur@univ-tlse3.fr");
+
+        Vehicle vehicle = createVehicle(owner, "Renault", "Clio", 4, true);
+
+        createTrip(vehicle, TripStatus.PUBLISHED);
+
+        String accessToken = accessTokenService.createAccessToken(owner.getUserId());
+
+        mockMvc.perform(delete(VEHICLES_ENDPOINT + "/" + vehicle.getVehicleId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("VEHICLE_IN_USE"));
+
+        assertThat(vehicleRepository.findById(vehicle.getVehicleId())
+                .orElseThrow()
+                .isActive())
+                .isTrue();
     }
 
     private ResultActions sendPatchRequest(

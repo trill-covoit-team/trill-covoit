@@ -10,4 +10,6 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
 
     boolean existsByVehicleIdAndStatusAndOfferedSeatsGreaterThan(
             Long vehicleId, TripStatus status, Integer capacity);
+
+    boolean existsByVehicleIdAndStatus(Long vehicleId, TripStatus status);
 }

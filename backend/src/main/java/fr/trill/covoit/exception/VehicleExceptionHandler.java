@@ -26,4 +26,10 @@ public class VehicleExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ErrorResponse("VEHICLE_CAPACITY_CONFLICT", ex.getMessage()));
     }
+
+    @ExceptionHandler(VehicleInUseException.class)
+    public ResponseEntity<ErrorResponse> handleVehicleInUse(VehicleInUseException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponse("VEHICLE_IN_USE", ex.getMessage()));
+    }
 }

@@ -5,6 +5,7 @@ import fr.trill.covoit.dto.UpdateVehicleRequest;
 import fr.trill.covoit.dto.VehicleResponse;
 import fr.trill.covoit.exception.EmptyVehicleUpdateException;
 import fr.trill.covoit.exception.VehicleCapacityConflictException;
+import fr.trill.covoit.exception.VehicleInUseException;
 import fr.trill.covoit.exception.VehicleNotFoundException;
 import fr.trill.covoit.model.Vehicle;
 import fr.trill.covoit.model.enums.TripStatus;
@@ -87,5 +88,18 @@ public class VehicleService {
         Vehicle updatedVehicle = vehicleRepository.save(vehicle);
 
         return VehicleService.toResponse(updatedVehicle);
+    }
+
+    @Transactional
+    public void deleteVehicle(String userId, Long vehicleId) {
+        Vehicle vehicle = vehicleRepository.findByVehicleIdAndUserIdAndActiveTrue(vehicleId, Long.valueOf(userId))
+                .orElseThrow(VehicleNotFoundException::new);
+
+        if (tripRepository.existsByVehicleIdAndStatus(vehicleId, TripStatus.PUBLISHED)) {
+            throw new VehicleInUseException();
+        }
+
+        vehicle.setActive(false);
+        vehicleRepository.save(vehicle);
     }
 }

@@ -44,4 +44,12 @@ public class VehicleController {
         VehicleResponse response = vehicleService.updateVehicle(userId, vehicleId, request);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
+
+    @DeleteMapping("/{vehicleId}")
+    public ResponseEntity<Void> deleteVehicle(@AuthenticationPrincipal Jwt jwt,
+                                              @PathVariable Long vehicleId) {
+        String userId = jwt.getSubject();
+        vehicleService.deleteVehicle(userId, vehicleId);
+        return ResponseEntity.noContent().build();
+    }
 }
