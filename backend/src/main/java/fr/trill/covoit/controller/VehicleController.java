@@ -33,7 +33,7 @@ public class VehicleController {
     public ResponseEntity<List<VehicleResponse>> getUserVehicles(@AuthenticationPrincipal Jwt jwt) {
         String userId = jwt.getSubject();
         List<VehicleResponse> response = vehicleService.getUserVehicles(userId);
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @PatchMapping("/{vehicleId}")
@@ -42,7 +42,7 @@ public class VehicleController {
                                                          @Valid @RequestBody UpdateVehicleRequest request) {
         String userId = jwt.getSubject();
         VehicleResponse response = vehicleService.updateVehicle(userId, vehicleId, request);
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{vehicleId}")
