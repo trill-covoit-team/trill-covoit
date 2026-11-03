@@ -1,0 +1,2 @@
+ALTER TABLE trip
+    ALTER COLUMN departure_datetime TYPE TIMESTAMPTZ;
