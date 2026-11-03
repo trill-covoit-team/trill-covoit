@@ -3,7 +3,11 @@ package fr.trill.covoit.integration;
 import fr.trill.covoit.dto.AuthResponse;
 import fr.trill.covoit.dto.LoginRequest;
 import fr.trill.covoit.model.AppUser;
+import fr.trill.covoit.model.AuthSession;
+import fr.trill.covoit.model.RefreshToken;
 import fr.trill.covoit.repository.AppUserRepository;
+import fr.trill.covoit.repository.AuthSessionRepository;
+import fr.trill.covoit.repository.RefreshTokenRepository;
 import fr.trill.covoit.service.EmailService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,11 +36,14 @@ import tools.jackson.databind.ObjectMapper;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -55,6 +62,12 @@ class AuthIntegrationTest {
 
     @Autowired
     private AppUserRepository userRepository;
+
+    @Autowired
+    private AuthSessionRepository authSessionRepository;
+
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -94,6 +107,7 @@ class AuthIntegrationTest {
                 .build();
 
         // Exécuter le login avec les vrais filtres, services et accès à la base.
+        Instant beforeLogin = Instant.now();
         MvcResult result = mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -104,10 +118,25 @@ class AuthIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Connexion réussie."))
                 .andExpect(jsonPath("$.tokenType").value("Bearer"))
                 .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.refreshToken").isNotEmpty())
                 .andReturn();
+        Instant afterLogin = Instant.now();
 
         AuthResponse response = objectMapper.readValue(
                 result.getResponse().getContentAsString(), AuthResponse.class);
+
+        String expectedHash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                .digest(response.getRefreshToken().getBytes(StandardCharsets.UTF_8)));
+        RefreshToken savedToken = refreshTokenRepository.findByTokenHash(expectedHash).orElseThrow();
+
+        assertThat(savedToken.getTokenHash()).isEqualTo(expectedHash);
+        assertThat(refreshTokenRepository.findByTokenHash(response.getRefreshToken())).isEmpty();
+
+        AuthSession session = authSessionRepository.findById(savedToken.getSessionId()).orElseThrow();
+        assertThat(session.getUserId()).isEqualTo(user.getUserId());
+        assertThat(session.getRevokedAt()).isNull();
+        assertThat(session.getExpiresAt()).isBetween(
+                beforeLogin.plus(Duration.ofDays(30)), afterLogin.plus(Duration.ofDays(30)));
 
         mockMvc.perform(get(PROTECTED_ENDPOINT)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + response.getAccessToken()))

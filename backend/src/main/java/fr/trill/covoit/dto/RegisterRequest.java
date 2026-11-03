@@ -1,10 +1,7 @@
 package fr.trill.covoit.dto;
 
 import fr.trill.covoit.dto.validation.MaxUtf8Bytes;
-import jakarta.validation.constraints.AssertTrue;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,6 +23,7 @@ public class RegisterRequest {
     @MaxUtf8Bytes
     private String password;
 
+    @NotNull(message = "Vous devez accepter les conditions d'utilisation.")
     @AssertTrue(message = "Vous devez accepter les conditions d'utilisation.")
-    private boolean termsAccepted;
+    private Boolean termsAccepted;
 }
