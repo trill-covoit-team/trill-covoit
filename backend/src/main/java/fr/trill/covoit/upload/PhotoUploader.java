@@ -14,7 +14,7 @@ import java.nio.file.Paths;
 @Service
 public class PhotoUploader {
     private static final long MAX_FILE_SIZE = 5242880;
-    private final Path photoDirectory = Paths.get("C:\\Users\\rapha\\Documents\\S5\\SAE5\\simulation-serveur-stockage");
+    private final Path photoDirectory = Paths.get("C:\\Users\\rapha\\Documents\\S5\\SAE5\\simulation-serveur-stockage"); //Placeholder avant de mettre le vrai chemin des photos
 
     private final AppUserRepository appUserRepository;
 

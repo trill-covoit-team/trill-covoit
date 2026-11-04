@@ -7,32 +7,37 @@ import fr.trill.covoit.service.AppUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/users/me")
 @RequiredArgsConstructor
 public class AppUserController {
 
     private final AppUserService appUserService;
 
-    @GetMapping("/{userId}")
-    public ResponseEntity<AppUser> getOneUser(@PathVariable Long userId) {
+    @GetMapping
+    public ResponseEntity<AppUser> getOneUser(@AuthenticationPrincipal Jwt jwt) {
+        Long userId = Long.valueOf(jwt.getSubject());
         AppUser user = appUserService.getOneUser(userId);
         return ResponseEntity.ok(user);
     }
 
-    @PatchMapping("/{userId}")
-    public ResponseEntity<MessageResponse> patchOneUser(@PathVariable Long userId, @RequestBody UpdateAppUserRequest request) {
+    @PatchMapping
+    public ResponseEntity<MessageResponse> patchOneUser(@AuthenticationPrincipal Jwt jwt, @RequestBody UpdateAppUserRequest request) {
+        Long userId = Long.valueOf(jwt.getSubject());
         MessageResponse response = appUserService.patchOneUser(userId, request);
         return ResponseEntity.ok(response);
     }
 
-    @PutMapping("/{userId}/photo")
-    public ResponseEntity<MessageResponse> putOneUserPhoto(@PathVariable Long userId, @RequestParam("file") MultipartFile file) {
+    @PutMapping("/photo")
+    public ResponseEntity<MessageResponse> putOneUserPhoto(@AuthenticationPrincipal Jwt jwt, @RequestParam("file") MultipartFile file) {
+        Long userId = Long.valueOf(jwt.getSubject());
         try {
             MessageResponse response = appUserService.saveUserPhoto(userId, file);
             return ResponseEntity.ok(response);
@@ -44,8 +49,9 @@ public class AppUserController {
         }
     }
 
-    @DeleteMapping("/{userId}/photo")
-    public ResponseEntity<MessageResponse> deleteOneUserPhoto(@PathVariable Long userId) {
+    @DeleteMapping("/photo")
+    public ResponseEntity<MessageResponse> deleteOneUserPhoto(@AuthenticationPrincipal Jwt jwt) {
+        Long userId = Long.valueOf(jwt.getSubject());
         try {
             MessageResponse response = appUserService.deleteUserPhoto(userId);
             return ResponseEntity.ok(response);
