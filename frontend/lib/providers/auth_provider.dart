@@ -1,39 +1,31 @@
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
-import 'package:trill_covoit/core/constants/api_constants.dart';
 import 'package:trill_covoit/exceptions/api_exception.dart';
 import 'package:trill_covoit/models/auth_session.dart';
-import 'package:trill_covoit/services/api_client.dart';
 import 'package:trill_covoit/services/auth_api_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthApiService _apiService;
 
-  AuthProvider({AuthApiService? apiService})
-      : _apiService = apiService ??
-            AuthApiService(
-              apiClient: ApiClient(
-                client: http.Client(),
-                baseUrl: ApiConstants.baseUrl,
-              ),
-            );
+  AuthProvider({required AuthApiService apiService}) : _apiService = apiService;
 
   AuthSession? _currentSession;
   bool _isLoading = false;
   String? _errorMessage;
   String? _successMessage;
+  Map<String, dynamic>? _fieldErrors;
   String? _pendingVerificationEmail;
+  int _operationToken = 0;
 
   AuthSession? get currentSession => _currentSession;
   bool get isAuthenticated => _currentSession != null;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String? get successMessage => _successMessage;
+  Map<String, dynamic>? get fieldErrors => _fieldErrors;
   String? get pendingVerificationEmail => _pendingVerificationEmail;
 
   void clearMessages() {
-    _errorMessage = null;
-    _successMessage = null;
+    _clearMessagesInternal();
     notifyListeners();
   }
 
@@ -47,8 +39,11 @@ class AuthProvider extends ChangeNotifier {
     required String password,
     required bool termsAccepted,
   }) async {
-    _setLoading(true);
+    if (_isLoading) return false;
+
+    final token = ++_operationToken;
     _clearMessagesInternal();
+    _setLoading(true);
 
     try {
       final msg = await _apiService.register(
@@ -56,18 +51,24 @@ class AuthProvider extends ChangeNotifier {
         password: password,
         termsAccepted: termsAccepted,
       );
+      if (token != _operationToken) return false;
+
       _successMessage = msg;
       _pendingVerificationEmail = email;
-      _setLoading(false);
       return true;
     } on ApiException catch (e) {
+      if (token != _operationToken) return false;
       _errorMessage = e.message;
-      _setLoading(false);
+      _fieldErrors = e.fieldErrors;
       return false;
-    } catch (e) {
+    } catch (_) {
+      if (token != _operationToken) return false;
       _errorMessage = 'Une erreur inattendue est survenue.';
-      _setLoading(false);
       return false;
+    } finally {
+      if (token == _operationToken) {
+        _setLoading(false);
+      }
     }
   }
 
@@ -75,22 +76,31 @@ class AuthProvider extends ChangeNotifier {
     required String email,
     required String code,
   }) async {
-    _setLoading(true);
+    if (_isLoading) return false;
+
+    final token = ++_operationToken;
     _clearMessagesInternal();
+    _setLoading(true);
 
     try {
       final msg = await _apiService.verifyEmail(email: email, code: code);
+      if (token != _operationToken) return false;
+
       _successMessage = msg;
-      _setLoading(false);
       return true;
     } on ApiException catch (e) {
+      if (token != _operationToken) return false;
       _errorMessage = e.message;
-      _setLoading(false);
+      _fieldErrors = e.fieldErrors;
       return false;
-    } catch (e) {
+    } catch (_) {
+      if (token != _operationToken) return false;
       _errorMessage = 'Une erreur inattendue est survenue.';
-      _setLoading(false);
       return false;
+    } finally {
+      if (token == _operationToken) {
+        _setLoading(false);
+      }
     }
   }
 
@@ -98,33 +108,44 @@ class AuthProvider extends ChangeNotifier {
     required String email,
     required String password,
   }) async {
-    _setLoading(true);
+    if (_isLoading) return false;
+
+    final token = ++_operationToken;
     _clearMessagesInternal();
+    _setLoading(true);
 
     try {
       final session = await _apiService.login(email: email, password: password);
+      if (token != _operationToken) return false;
+
       _currentSession = session;
       _pendingVerificationEmail = null;
-      _setLoading(false);
       return true;
     } on ApiException catch (e) {
+      if (token != _operationToken) return false;
       _errorMessage = e.message;
+      _fieldErrors = e.fieldErrors;
       if (e.statusCode == 403) {
         _pendingVerificationEmail = email;
       }
-      _setLoading(false);
       return false;
-    } catch (e) {
+    } catch (_) {
+      if (token != _operationToken) return false;
       _errorMessage = 'Une erreur inattendue est survenue.';
-      _setLoading(false);
       return false;
+    } finally {
+      if (token == _operationToken) {
+        _setLoading(false);
+      }
     }
   }
 
   void logout() {
+    _operationToken++;
     _currentSession = null;
     _clearMessagesInternal();
     _pendingVerificationEmail = null;
+    _isLoading = false;
     notifyListeners();
   }
 
@@ -136,5 +157,6 @@ class AuthProvider extends ChangeNotifier {
   void _clearMessagesInternal() {
     _errorMessage = null;
     _successMessage = null;
+    _fieldErrors = null;
   }
 }
