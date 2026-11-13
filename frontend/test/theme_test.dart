@@ -140,8 +140,9 @@ void main() {
 
   testWidgets("L'application démarre avec le thème partagé", (tester) async {
     await tester.pumpWidget(const MainApp());
+    await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(Scaffold));
+    final context = tester.element(find.byType(Scaffold).first);
     expect(Theme.of(context).scaffoldBackgroundColor, AppColors.bg);
     expect(tester.takeException(), isNull);
   });
