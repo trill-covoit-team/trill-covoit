@@ -1,5 +1,7 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'app_page_transitions.dart';
 import 'tokens.dart';
 
 class AppTheme {
@@ -63,6 +65,15 @@ class AppTheme {
       scaffoldBackgroundColor: bg,
       textTheme: textTheme,
       splashFactory: InkSparkle.splashFactory,
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: AppFadeThroughTransitionsBuilder(),
+          TargetPlatform.iOS: AppCupertinoTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: ZoomPageTransitionsBuilder(),
+          TargetPlatform.linux: ZoomPageTransitionsBuilder(),
+        },
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: bg,
         foregroundColor: text,
