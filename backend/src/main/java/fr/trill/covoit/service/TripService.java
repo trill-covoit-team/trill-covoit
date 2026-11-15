@@ -3,6 +3,7 @@ package fr.trill.covoit.service;
 import fr.trill.covoit.dto.CreateTripRequest;
 import fr.trill.covoit.dto.TripResponse;
 import fr.trill.covoit.exception.TripCapacityExceededException;
+import fr.trill.covoit.exception.TripNotFoundException;
 import fr.trill.covoit.exception.VehicleNotFoundException;
 import fr.trill.covoit.model.AppUser;
 import fr.trill.covoit.model.Trip;
@@ -63,5 +64,17 @@ public class TripService {
         Trip savedTrip = tripRepository.save(trip);
 
         return TripService.toResponse(savedTrip);
+    }
+
+    @Transactional(readOnly = true)
+    public TripResponse getTrip(Long userId, Long tripId) {
+        Trip trip = tripRepository.findById(tripId)
+                .orElseThrow(TripNotFoundException::new);
+
+        if (trip.getStatus() != TripStatus.PUBLISHED && !trip.getDriver().getUserId().equals(userId)) {
+            throw new TripNotFoundException();
+        }
+
+        return TripService.toResponse(trip);
     }
 }

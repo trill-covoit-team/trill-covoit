@@ -34,6 +34,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -75,6 +76,15 @@ class TripIntegrationTest {
                 Arguments.of("departureDatetime", "null", "VALIDATION_ERROR"),
                 Arguments.of("departureDatetime", "\"demain\"", "INVALID_REQUEST_BODY"),
                 Arguments.of("offeredSeats", "2.5", "INVALID_REQUEST_BODY")
+        );
+    }
+
+    private static Stream<Arguments> allowedTripReads() {
+        return Stream.of(
+                Arguments.of(TripStatus.PUBLISHED, true),
+                Arguments.of(TripStatus.PUBLISHED, false),
+                Arguments.of(TripStatus.CANCELLED, true),
+                Arguments.of(TripStatus.COMPLETED, true)
         );
     }
 
@@ -222,6 +232,86 @@ class TripIntegrationTest {
                 .andExpect(status().isUnauthorized());
 
         assertThat(tripRepository.count()).isZero();
+    }
+
+    @ParameterizedTest(name = "statut : {0}, lecteur conducteur : {1}")
+    @MethodSource("allowedTripReads")
+    @DisplayName("Un trajet publié est consultable par tous les utilisateurs connectés, les autres par leur conducteur")
+    void getTrip_WithAllowedUser_Returns200AndTrip(TripStatus tripStatus, boolean readerIsDriver) throws Exception {
+        AppUser driver = createVerifiedUser("conducteur@univ-tlse3.fr");
+        AppUser reader = readerIsDriver ? driver : createVerifiedUser("lecteur@univ-tlse3.fr");
+        Vehicle vehicle = createVehicle(driver, true);
+        Trip trip = createTrip(driver, vehicle, tripStatus);
+        String accessToken = accessTokenService.createAccessToken(reader.getUserId());
+
+        var result = mockMvc.perform(get(TRIPS_ENDPOINT + "/" + trip.getTripId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tripId").value(trip.getTripId()))
+                .andExpect(jsonPath("$.departureAddress").value("Toulouse"))
+                .andExpect(jsonPath("$.arrivalAddress").value("Albi"))
+                .andExpect(jsonPath("$.offeredSeats").value(3))
+                .andExpect(jsonPath("$.status").value(tripStatus.name()))
+                .andExpect(jsonPath("$.driver.userId").value(driver.getUserId()))
+                .andExpect(jsonPath("$.driver.firstName").value(driver.getFirstName()))
+                .andExpect(jsonPath("$.vehicle.vehicleId").value(vehicle.getVehicleId()))
+                .andExpect(jsonPath("$.vehicle.brand").value("Renault"))
+                .andExpect(jsonPath("$.vehicle.model").value("Clio"))
+                .andReturn();
+
+        JsonNode response = objectMapper.readTree(result.getResponse().getContentAsString());
+        assertThat(Instant.parse(response.get("departureDatetime").asString())).isEqualTo(trip.getDepartureDatetime());
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(value = TripStatus.class, names = {"CANCELLED", "COMPLETED"})
+    @DisplayName("Un trajet annulé ou terminé est masqué aux autres utilisateurs")
+    void getTrip_WithOtherUserAndUnpublishedTrip_Returns404(TripStatus tripStatus) throws Exception {
+        AppUser driver = createVerifiedUser("conducteur@univ-tlse3.fr");
+        AppUser reader = createVerifiedUser("lecteur@univ-tlse3.fr");
+        Vehicle vehicle = createVehicle(driver, true);
+        Trip trip = createTrip(driver, vehicle, tripStatus);
+        String accessToken = accessTokenService.createAccessToken(reader.getUserId());
+
+        mockMvc.perform(get(TRIPS_ENDPOINT + "/" + trip.getTripId())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("TRIP_NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("Un identifiant de trajet inexistant renvoie une erreur 404")
+    void getTrip_WithMissingTrip_Returns404() throws Exception {
+        AppUser reader = createVerifiedUser("lecteur@univ-tlse3.fr");
+        String accessToken = accessTokenService.createAccessToken(reader.getUserId());
+
+        mockMvc.perform(get(TRIPS_ENDPOINT + "/" + Long.MAX_VALUE)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("TRIP_NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("Même un trajet publié exige une authentification pour être consulté")
+    void getTrip_WithoutToken_Returns401() throws Exception {
+        AppUser driver = createVerifiedUser("conducteur@univ-tlse3.fr");
+        Vehicle vehicle = createVehicle(driver, true);
+        Trip trip = createTrip(driver, vehicle, TripStatus.PUBLISHED);
+
+        mockMvc.perform(get(TRIPS_ENDPOINT + "/" + trip.getTripId()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    private Trip createTrip(AppUser driver, Vehicle vehicle, TripStatus status) {
+        return tripRepository.saveAndFlush(Trip.builder()
+                .departureAddress("Toulouse")
+                .arrivalAddress("Albi")
+                .departureDatetime(futureDeparture())
+                .offeredSeats(3)
+                .status(status)
+                .driver(driver)
+                .vehicle(vehicle)
+                .build());
     }
 
     private void assertPublicDriver(JsonNode response, AppUser driver) {

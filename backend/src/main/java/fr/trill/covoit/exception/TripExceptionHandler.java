@@ -14,4 +14,10 @@ public class TripExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ErrorResponse("TRIP_CAPACITY_EXCEEDED", ex.getMessage()));
     }
+
+    @ExceptionHandler(TripNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleTripNotFound(TripNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse("TRIP_NOT_FOUND", ex.getMessage()));
+    }
 }
