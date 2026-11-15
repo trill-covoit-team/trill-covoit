@@ -24,7 +24,7 @@ public class VehicleService {
     private final VehicleRepository vehicleRepository;
     private final TripRepository tripRepository;
 
-    private static VehicleResponse toResponse(Vehicle vehicle) {
+    public static VehicleResponse toResponse(Vehicle vehicle) {
         return VehicleResponse.builder()
                 .vehicleId(vehicle.getVehicleId())
                 .brand(vehicle.getBrand())
@@ -68,8 +68,8 @@ public class VehicleService {
         // Le véhicule doit conserver assez de places pour les trajets publiés.
         // Les trajets terminés ou annulés ne bloquent pas la modification du véhicule.
         if (request.getPassengerCapacity() != null
-                && tripRepository.existsByVehicleIdAndStatusAndOfferedSeatsGreaterThan(
-                vehicleId, TripStatus.PUBLISHED, request.getPassengerCapacity())) {
+                && tripRepository.existsByVehicleAndStatusAndOfferedSeatsGreaterThan(
+                vehicle, TripStatus.PUBLISHED, request.getPassengerCapacity())) {
             throw new VehicleCapacityConflictException();
         }
 
@@ -95,7 +95,7 @@ public class VehicleService {
         Vehicle vehicle = vehicleRepository.findByVehicleIdAndUserIdAndActiveTrue(vehicleId, Long.valueOf(userId))
                 .orElseThrow(VehicleNotFoundException::new);
 
-        if (tripRepository.existsByVehicleIdAndStatus(vehicleId, TripStatus.PUBLISHED)) {
+        if (tripRepository.existsByVehicleAndStatus(vehicle, TripStatus.PUBLISHED)) {
             throw new VehicleInUseException();
         }
 

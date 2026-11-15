@@ -244,7 +244,7 @@ class VehicleIntegrationTest {
         Vehicle vehicle = createVehicle(owner, "Renault", "Clio", 4, true);
 
         if (withPublishedTrip) {
-            createTrip(vehicle, TripStatus.PUBLISHED);
+            createTrip(owner, vehicle, TripStatus.PUBLISHED);
         }
 
         String accessToken = accessTokenService.createAccessToken(owner.getUserId());
@@ -300,7 +300,7 @@ class VehicleIntegrationTest {
 
         Vehicle vehicle = createVehicle(owner, "Renault", "Clio", 4, true);
 
-        Trip trip = createTrip(vehicle, tripStatus);
+        Trip trip = createTrip(owner, vehicle, tripStatus);
 
         String accessToken = accessTokenService.createAccessToken(owner.getUserId());
 
@@ -363,8 +363,8 @@ class VehicleIntegrationTest {
 
         Vehicle vehicle = createVehicle(owner, "Renault", "Clio", 4, true);
 
-        Trip completedTrip = createTrip(vehicle, TripStatus.COMPLETED);
-        Trip cancelledTrip = createTrip(vehicle, TripStatus.CANCELLED);
+        Trip completedTrip = createTrip(owner, vehicle, TripStatus.COMPLETED);
+        Trip cancelledTrip = createTrip(owner, vehicle, TripStatus.CANCELLED);
 
         String accessToken = accessTokenService.createAccessToken(owner.getUserId());
 
@@ -415,7 +415,7 @@ class VehicleIntegrationTest {
 
         Vehicle vehicle = createVehicle(owner, "Renault", "Clio", 4, true);
 
-        createTrip(vehicle, TripStatus.PUBLISHED);
+        createTrip(owner, vehicle, TripStatus.PUBLISHED);
 
         String accessToken = accessTokenService.createAccessToken(owner.getUserId());
 
@@ -438,15 +438,15 @@ class VehicleIntegrationTest {
                 .content(requestBody));
     }
 
-    private Trip createTrip(Vehicle vehicle, TripStatus status) {
+    private Trip createTrip(AppUser driver, Vehicle vehicle, TripStatus status) {
         return tripRepository.saveAndFlush(Trip.builder()
                 .departureAddress("Toulouse")
                 .arrivalAddress("Albi")
                 .departureDatetime(Instant.now().plusSeconds(86400))
                 .offeredSeats(3)
                 .status(status)
-                .vehicleId(vehicle.getVehicleId())
-                .driverId(vehicle.getUserId())
+                .vehicle(vehicle)
+                .driver(driver)
                 .build());
     }
 

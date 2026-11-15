@@ -20,10 +20,10 @@ public class Trip {
     @Column(name = "trip_id")
     private Long tripId;
 
-    @Column(name = "departure_address", nullable = false)
+    @Column(name = "departure_address", nullable = false, columnDefinition = "TEXT")
     private String departureAddress;
 
-    @Column(name = "arrival_address", nullable = false)
+    @Column(name = "arrival_address", nullable = false, columnDefinition = "TEXT")
     private String arrivalAddress;
 
     @Column(name = "departure_datetime", nullable = false)
@@ -36,9 +36,11 @@ public class Trip {
     @Column(name = "status", nullable = false, length = 20)
     private TripStatus status;
 
-    @Column(name = "vehicle_id", nullable = false)
-    private Long vehicleId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "driver_id", nullable = false)
+    private AppUser driver;
 
-    @Column(name = "driver_id", nullable = false)
-    private Long driverId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "vehicle_id", nullable = false)
+    private Vehicle vehicle;
 }
