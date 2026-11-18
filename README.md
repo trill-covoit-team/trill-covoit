@@ -66,6 +66,8 @@ Avec `DOCKER_ENABLED=true`, Spring Boot démarre PostgreSQL automatiquement via 
 
 Le nom du fichier de la photo de profil est conservé en base ; l'API construit `photoUrl` à partir de `PUBLIC_BASE_URL` (par défaut `http://localhost:8080`). Pour un appareil ou un émulateur, renseigner dans `.env` une adresse de l'API accessible depuis cet appareil.
 
+Les photos sont consultables sans connexion via `GET /photos/{fileName}` depuis le dossier `app.photo.storage-directory` (`./uploads/profile-photos` par défaut). Leur envoi et leur suppression nécessitent une authentification.
+
 4. Lancer le frontend depuis la racine du dépôt, dans un second terminal :
 
 ```powershell

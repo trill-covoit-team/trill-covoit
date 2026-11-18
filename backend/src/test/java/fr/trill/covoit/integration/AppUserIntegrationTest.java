@@ -343,6 +343,9 @@ class AppUserIntegrationTest {
         AppUser otherUser = seedPhoto(createUser("autre@univ-tlse3.fr"));
         AppUser owner = seedPhoto(createUser("profil@univ-tlse3.fr"));
 
+        mockMvc.perform(get("/photos/{fileName}", owner.getPhotoFileName()))
+                .andExpect(status().isOk());
+
         var response = sendPhoto(owner, photo(format, "avatar." + format, "image/" + format, 2, 2))
                 .andExpect(status().isOk());
 
@@ -354,6 +357,50 @@ class AppUserIntegrationTest {
         assertOnlyPhotoChanged(owner, savedUser);
         assertUnchanged(otherUser);
         assertThat(photoFileNames()).containsExactlyInAnyOrder(savedUser.getPhotoFileName(), otherUser.getPhotoFileName());
+        mockMvc.perform(get("/photos/{fileName}", owner.getPhotoFileName()))
+                .andExpect(status().isNotFound());
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @CsvSource({"png, png, image/png", "jpeg, jpg, image/jpeg"})
+    @DisplayName("Les photos JPEG et PNG sont consultables sans token avec GET et HEAD")
+    void getAndHeadPhoto_WithoutToken_ReturnImageAndHeaders(
+            String format, String extension, String contentType) throws Exception {
+        String fileName = "avatar." + extension;
+        byte[] bytes = imageBytes(format, 2, 2);
+        Files.write(photoDirectory.resolve(fileName), bytes);
+
+        mockMvc.perform(get("/photos/{fileName}", fileName))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(contentType))
+                .andExpect(content().bytes(bytes));
+
+        mockMvc.perform(head("/photos/{fileName}", fileName))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(contentType))
+                .andExpect(header().longValue(HttpHeaders.CONTENT_LENGTH, bytes.length))
+                .andExpect(content().string(""));
+    }
+
+    @Test
+    @DisplayName("Une photo inexistante renvoie une erreur 404")
+    void getPhoto_WithMissingFile_Returns404() throws Exception {
+        mockMvc.perform(get("/photos/missing.png"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Une requête ne peut pas lire un fichier situé hors du dossier des photos")
+    void getPhoto_WithParentTraversal_Returns400() throws Exception {
+        Path outsideFile = Files.createTempFile(photoDirectory.getParent(), "outside-photo-", ".png");
+        try {
+            Files.write(outsideFile, imageBytes("png", 2, 2));
+
+            mockMvc.perform(get("/photos/../" + outsideFile.getFileName()))
+                    .andExpect(status().isBadRequest());
+        } finally {
+            Files.deleteIfExists(outsideFile);
+        }
     }
 
     @ParameterizedTest(name = "{0}")
@@ -428,6 +475,8 @@ class AppUserIntegrationTest {
         assertOnlyPhotoChanged(owner, savedUser);
         assertUnchanged(otherUser);
         assertThat(photoFileNames()).containsExactly(otherUser.getPhotoFileName());
+        mockMvc.perform(get("/photos/{fileName}", owner.getPhotoFileName()))
+                .andExpect(status().isNotFound());
     }
 
     @Test

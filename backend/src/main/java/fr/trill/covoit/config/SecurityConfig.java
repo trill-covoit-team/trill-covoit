@@ -42,6 +42,8 @@ public class SecurityConfig {
                                 "/auth/refresh",
                                 "/auth/logout"
                         ).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/photos/**").permitAll()
+                        .requestMatchers(HttpMethod.HEAD, "/photos/**").permitAll()
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .anyRequest().authenticated()
                 )
