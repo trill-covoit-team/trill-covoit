@@ -38,7 +38,7 @@ public class AppUser {
     @Column(name = "photo_url")
     private String photoUrl;
 
-    @Column(name = "bio")
+    @Column(name = "bio", columnDefinition = "TEXT")
     private String bio;
 
     @Column(name = "terms_accepted", nullable = false)

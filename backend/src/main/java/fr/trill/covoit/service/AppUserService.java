@@ -1,16 +1,17 @@
 package fr.trill.covoit.service;
 
 import fr.trill.covoit.dto.MessageResponse;
+import fr.trill.covoit.dto.MyProfileResponse;
 import fr.trill.covoit.dto.UpdateAppUserRequest;
+import fr.trill.covoit.exception.AuthenticatedUserNotFoundException;
+import fr.trill.covoit.exception.EmptyUpdateException;
 import fr.trill.covoit.model.AppUser;
 import fr.trill.covoit.repository.AppUserRepository;
 import fr.trill.covoit.upload.PhotoUploader;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 
@@ -21,31 +22,51 @@ public class AppUserService {
     private final AppUserRepository appUserRepository;
     private final PhotoUploader photoUploader;
 
+    private MyProfileResponse toMyProfileResponse(AppUser user) {
+        return MyProfileResponse.builder()
+                .userId(user.getUserId())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .photoUrl(user.getPhotoUrl())
+                .bio(user.getBio())
+                .createdAt(user.getCreatedAt())
+                .build();
+    }
+
     @Transactional(readOnly = true)
-    public AppUser getOneUser(Long userId) {
-        return appUserRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Utilisateur non trouvé"));
+    public MyProfileResponse getMyProfile(Long userId) {
+        AppUser user = getAuthenticatedUser(userId);
+        return toMyProfileResponse(user);
     }
 
     @Transactional
-    public MessageResponse patchOneUser(Long userId, UpdateAppUserRequest request) {
-        AppUser user = getOneUser(userId);
+    public MyProfileResponse updateMyProfile(Long userId, UpdateAppUserRequest request) {
+        if (request.getFirstName() == null && request.getLastName() == null && request.getBio() == null) {
+            throw new EmptyUpdateException();
+        }
 
-        if (request.getEmail() != null) user.setEmail(request.getEmail());
-        if (request.getPasswordHash() != null) user.setPasswordHash(request.getPasswordHash());
-        if (request.getEmailVerified() != null) user.setEmailVerified(request.getEmailVerified());
-        if (request.getFirstName() != null) user.setFirstName(request.getFirstName());
-        if (request.getLastName() != null) user.setLastName(request.getLastName());
-        if (request.getPhotoUrl() != null) user.setPhotoUrl(request.getPhotoUrl());
-        if (request.getBio() != null) user.setBio(request.getBio());
+        AppUser user = getAuthenticatedUser(userId);
 
-        appUserRepository.save(user);
-        return new MessageResponse("Profil mis à jour avec succès");
+        // Un champ absent reste inchangé ; une chaîne vide efface le nom ou la bio.
+        if (request.getFirstName() != null) {
+            user.setFirstName(request.getFirstName());
+        }
+        if (request.getLastName() != null) {
+            user.setLastName(request.getLastName().isEmpty() ? null : request.getLastName());
+        }
+        if (request.getBio() != null) {
+            user.setBio(request.getBio().isEmpty() ? null : request.getBio());
+        }
+
+        AppUser savedUser = appUserRepository.save(user);
+
+        return toMyProfileResponse(savedUser);
     }
 
     @Transactional
     public MessageResponse saveUserPhoto(Long userId, MultipartFile file) throws IOException {
-        AppUser user = getOneUser(userId);
+        AppUser user = getAuthenticatedUser(userId);
 
         String response = photoUploader.savePhoto(file, userId, user);
         if (!response.equals("Saved")) {
@@ -56,12 +77,17 @@ public class AppUserService {
 
     @Transactional
     public MessageResponse deleteUserPhoto(Long userId) {
-        AppUser user = getOneUser(userId);
+        AppUser user = getAuthenticatedUser(userId);
 
         boolean success = photoUploader.deletePhoto(userId, user);
         if (!success) {
             throw new RuntimeException("Photo non trouvée pour cet utilisateur");
         }
         return new MessageResponse("Photo supprimée avec succès");
+    }
+
+    private AppUser getAuthenticatedUser(Long userId) {
+        return appUserRepository.findById(userId)
+                .orElseThrow(AuthenticatedUserNotFoundException::new);
     }
 }

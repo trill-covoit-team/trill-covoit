@@ -3,7 +3,7 @@ package fr.trill.covoit.service;
 import fr.trill.covoit.dto.CreateVehicleRequest;
 import fr.trill.covoit.dto.UpdateVehicleRequest;
 import fr.trill.covoit.dto.VehicleResponse;
-import fr.trill.covoit.exception.EmptyVehicleUpdateException;
+import fr.trill.covoit.exception.EmptyUpdateException;
 import fr.trill.covoit.exception.VehicleCapacityConflictException;
 import fr.trill.covoit.exception.VehicleInUseException;
 import fr.trill.covoit.exception.VehicleNotFoundException;
@@ -59,7 +59,7 @@ public class VehicleService {
     @Transactional
     public VehicleResponse updateVehicle(String userId, Long vehicleId, UpdateVehicleRequest request) {
         if (request.getBrand() == null && request.getModel() == null && request.getPassengerCapacity() == null) {
-            throw new EmptyVehicleUpdateException();
+            throw new EmptyUpdateException();
         }
 
         Vehicle vehicle = vehicleRepository.findByVehicleIdAndUserIdAndActiveTrue(vehicleId, Long.valueOf(userId))

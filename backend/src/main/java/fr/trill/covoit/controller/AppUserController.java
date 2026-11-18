@@ -1,9 +1,10 @@
 package fr.trill.covoit.controller;
 
 import fr.trill.covoit.dto.MessageResponse;
+import fr.trill.covoit.dto.MyProfileResponse;
 import fr.trill.covoit.dto.UpdateAppUserRequest;
-import fr.trill.covoit.model.AppUser;
 import fr.trill.covoit.service.AppUserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/users/me")
@@ -22,16 +24,17 @@ public class AppUserController {
     private final AppUserService appUserService;
 
     @GetMapping
-    public ResponseEntity<AppUser> getOneUser(@AuthenticationPrincipal Jwt jwt) {
-        Long userId = Long.valueOf(jwt.getSubject());
-        AppUser user = appUserService.getOneUser(userId);
-        return ResponseEntity.ok(user);
+    public ResponseEntity<MyProfileResponse> getMyProfile(@AuthenticationPrincipal Jwt jwt) {
+        Long userId = Long.valueOf(Objects.requireNonNull(jwt.getSubject()));
+        MyProfileResponse response = appUserService.getMyProfile(userId);
+        return ResponseEntity.ok(response);
     }
 
     @PatchMapping
-    public ResponseEntity<MessageResponse> patchOneUser(@AuthenticationPrincipal Jwt jwt, @RequestBody UpdateAppUserRequest request) {
-        Long userId = Long.valueOf(jwt.getSubject());
-        MessageResponse response = appUserService.patchOneUser(userId, request);
+    public ResponseEntity<MyProfileResponse> updateMyProfile(@AuthenticationPrincipal Jwt jwt,
+                                                             @Valid @RequestBody UpdateAppUserRequest request) {
+        Long userId = Long.valueOf(Objects.requireNonNull(jwt.getSubject()));
+        MyProfileResponse response = appUserService.updateMyProfile(userId, request);
         return ResponseEntity.ok(response);
     }
 
