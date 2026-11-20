@@ -9,12 +9,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class VehicleExceptionHandler {
 
-    @ExceptionHandler(EmptyVehicleUpdateException.class)
-    public ResponseEntity<ErrorResponse> handleEmptyUpdate(EmptyVehicleUpdateException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse("VALIDATION_ERROR", ex.getMessage()));
-    }
-
     @ExceptionHandler(VehicleNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleVehicleNotFound(VehicleNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
