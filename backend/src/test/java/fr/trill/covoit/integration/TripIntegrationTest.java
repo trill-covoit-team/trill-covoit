@@ -320,7 +320,7 @@ class TripIntegrationTest {
         assertThat(response.get("userId").asLong()).isEqualTo(driver.getUserId());
         assertThat(response.get("firstName").asString()).isEqualTo(driver.getFirstName());
         assertThat(response.get("lastName").asString()).isEqualTo(driver.getLastName());
-        assertThat(response.get("photoUrl").asString()).isEqualTo(driver.getPhotoUrl());
+        assertThat(response.get("photoUrl").asString()).isEqualTo("https://api.example.test/photos/profil.jpg");
         assertThat(response.get("bio").asString()).isEqualTo(driver.getBio());
         // Relire la valeur persistée : la base peut arrondir la précision de @PrePersist.
         Instant createdAt = userRepository.findById(driver.getUserId()).orElseThrow().getCreatedAt();
@@ -388,7 +388,7 @@ class TripIntegrationTest {
                 .termsAccepted(true)
                 .firstName("Camille")
                 .lastName("Martin")
-                .photoUrl("https://example.com/profil.jpg")
+                .photoFileName("profil.jpg")
                 .bio("Conducteur entre Toulouse et Albi")
                 .verificationCode("123456")
                 .verificationCodeExpiresAt(futureDeparture())

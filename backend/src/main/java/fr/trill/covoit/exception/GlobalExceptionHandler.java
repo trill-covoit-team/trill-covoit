@@ -1,6 +1,7 @@
 package fr.trill.covoit.exception;
 
 import fr.trill.covoit.dto.ErrorResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -10,11 +11,13 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import tools.jackson.databind.exc.InvalidNullException;
 
+import java.io.UncheckedIOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -71,5 +74,20 @@ public class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(EmptyUpdateException.class)
+    public ResponseEntity<ErrorResponse> handleEmptyUpdate(EmptyUpdateException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponse("VALIDATION_ERROR", ex.getMessage()));
+    }
+
+    @ExceptionHandler(UncheckedIOException.class)
+    public ResponseEntity<ErrorResponse> handleIoError(UncheckedIOException ex) {
+        log.error("Erreur d'entrée/sortie.", ex);
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse("INTERNAL_ERROR",
+                        "Une erreur interne est survenue. Veuillez réessayer plus tard."));
     }
 }

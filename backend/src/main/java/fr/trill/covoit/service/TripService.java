@@ -23,8 +23,9 @@ public class TripService {
     private final AppUserRepository appUserRepository;
     private final VehicleRepository vehicleRepository;
     private final TripRepository tripRepository;
+    private final AppUserService appUserService;
 
-    private static TripResponse toResponse(Trip trip) {
+    private TripResponse toResponse(Trip trip) {
         return TripResponse.builder()
                 .tripId(trip.getTripId())
                 .departureAddress(trip.getDepartureAddress())
@@ -32,7 +33,7 @@ public class TripService {
                 .departureDatetime(trip.getDepartureDatetime())
                 .offeredSeats(trip.getOfferedSeats())
                 .status(trip.getStatus())
-                .driver(AppUserService.toPublicResponse(trip.getDriver()))
+                .driver(appUserService.toPublicResponse(trip.getDriver()))
                 .vehicle(VehicleService.toResponse(trip.getVehicle()))
                 .build();
     }
@@ -63,7 +64,7 @@ public class TripService {
 
         Trip savedTrip = tripRepository.save(trip);
 
-        return TripService.toResponse(savedTrip);
+        return toResponse(savedTrip);
     }
 
     @Transactional(readOnly = true)
@@ -75,6 +76,6 @@ public class TripService {
             throw new TripNotFoundException();
         }
 
-        return TripService.toResponse(trip);
+        return toResponse(trip);
     }
 }

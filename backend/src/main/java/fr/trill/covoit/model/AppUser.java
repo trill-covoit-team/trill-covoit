@@ -35,10 +35,10 @@ public class AppUser {
     @Column(name = "last_name")
     private String lastName;
 
-    @Column(name = "photo_url")
-    private String photoUrl;
+    @Column(name = "photo_file_name")
+    private String photoFileName;
 
-    @Column(name = "bio")
+    @Column(name = "bio", columnDefinition = "TEXT")
     private String bio;
 
     @Column(name = "terms_accepted", nullable = false)

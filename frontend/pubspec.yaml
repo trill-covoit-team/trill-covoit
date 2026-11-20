@@ -9,6 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  provider: ^6.1.5+1
+  http: ^1.6.0
+  google_fonts: ^6.2.1
+  flutter_svg: ^2.2.0
 
 dev_dependencies:
   flutter_test:
@@ -17,3 +21,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/car_top.svg
+    - assets/fonts/
