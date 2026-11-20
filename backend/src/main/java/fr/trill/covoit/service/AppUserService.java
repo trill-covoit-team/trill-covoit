@@ -1,6 +1,7 @@
 package fr.trill.covoit.service;
 
 import fr.trill.covoit.dto.MyProfileResponse;
+import fr.trill.covoit.dto.PublicUserResponse;
 import fr.trill.covoit.dto.UpdateAppUserRequest;
 import fr.trill.covoit.exception.AuthenticatedUserNotFoundException;
 import fr.trill.covoit.exception.EmptyUpdateException;
@@ -35,6 +36,17 @@ public class AppUserService {
     private final AppUserRepository appUserRepository;
     private final PhotoStorageService photoStorageService;
     private final PhotoUrlBuilder photoUrlBuilder;
+
+    public PublicUserResponse toPublicResponse(AppUser user) {
+        return PublicUserResponse.builder()
+                .userId(user.getUserId())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .photoUrl(photoUrlBuilder.build(user.getPhotoFileName()))
+                .bio(user.getBio())
+                .createdAt(user.getCreatedAt())
+                .build();
+    }
 
     private MyProfileResponse toMyProfileResponse(AppUser user) {
         return MyProfileResponse.builder()
